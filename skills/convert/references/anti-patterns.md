@@ -34,7 +34,7 @@ For scanned documents where OCR fails or confidence is low, the markdown body mu
 
 All asset references in the markdown must be relative. Absolute paths (`/Users/monty/...`, `/home/user/...`) break portability instantly.
 
-**Why:** Converted files move between environments (Cowork sandbox, Claude Code, git repos, Notion). Absolute paths only work in the environment that created them.
+**Why:** Converted files move between environments (Claude Code, Cursor, Cowork sandbox, git repos, Notion, CI runners). Absolute paths only work in the environment that created them.
 
 ### 6. Never skip degradation recording
 

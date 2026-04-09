@@ -1,6 +1,6 @@
-# Decisions — mdpowers-cowork
+# Decisions — mdpowers
 
-Architectural decisions for the mdpowers-cowork plugin, logged in a lightweight ADR (Architectural Decision Record) format. Each entry captures the context, the choice made, and its consequences — creating a searchable trail that survives memory loss.
+Architectural decisions for the mdpowers plugin, logged in a lightweight ADR (Architectural Decision Record) format. Each entry captures the context, the choice made, and its consequences — creating a searchable trail that survives memory loss.
 
 **Format:** Each decision gets a sequential number, a status, and four sections: Context, Decision, Consequences, and (optionally) Alternatives Considered.
 
@@ -34,7 +34,7 @@ Architectural decisions for the mdpowers-cowork plugin, logged in a lightweight 
 **Status:** Accepted
 **Date:** 2026-04-09
 
-**Context:** The original `pdf-convert` skill was docling-first and assumed a Claude Code + macOS environment with ample RAM. In Cowork sandbox environments (3.8GB RAM, ephemeral), docling is SIGKILL'd on any real PDF due to OOM. The skill also had no semantic enrichment — it produced plain text extraction without structured representations of diagrams, comparisons, or visual content. A real-world test on the Kwaxala Overview 2026 pitch deck made both limitations painfully visible: the skill couldn't run at all in the available environment, and even when fallback extraction succeeded, the output was a flat text dump that an AI couldn't meaningfully reason over.
+**Context:** The original `pdf-convert` skill was docling-first and assumed a Claude Code + macOS environment with ample RAM. In low-RAM environments (e.g. the Cowork sandbox with ~3.8GB, or small CI runners), docling is SIGKILL'd on any real PDF due to OOM. The skill also had no semantic enrichment — it produced plain text extraction without structured representations of diagrams, comparisons, or visual content. A real-world test on the Kwaxala Overview 2026 pitch deck made both limitations painfully visible: the skill couldn't run at all in the available environment, and even when fallback extraction succeeded, the output was a flat text dump that an AI couldn't meaningfully reason over.
 
 Beyond PDFs specifically, users also wanted consistent treatment for docx, pptx, epub, and other document types. Writing a separate skill per format would fragment the plugin and duplicate effort.
 
@@ -59,7 +59,7 @@ Beyond PDFs specifically, users also wanted consistent treatment for docx, pptx,
 
 **Alternatives Considered:**
 
-- **Fix pdf-convert in place** — smaller change, but wouldn't address the enrichment gap, the multi-format need, or the underlying architectural mismatch between "assume docling works" and the realities of the Cowork sandbox
+- **Fix pdf-convert in place** — smaller change, but wouldn't address the enrichment gap, the multi-format need, or the underlying architectural mismatch between "assume docling works" and the realities of constrained environments (low-RAM sandboxes, CI runners, hosts without docling at all)
 - **Build a multi-skill suite** (`convert-plan`, `convert-execute`, `convert-verify`) — more modular but fragmented for no current benefit; folded the phase structure inside a single skill as internal stages, with the option to split later if usage demands it
 - **Thin router skill** — smallest change, all intelligence in prose instructions the agent reads each time. Rejected because it provided no mechanism for the adaptive planning budget and no place for the enrichment playbooks to live
 
@@ -106,6 +106,44 @@ The principle applies to all future skills in the plugin, not just `convert`.
 **Alternatives Considered:**
 - **Custom-first** — maximum control, but loses the benefit of maintained tools and duplicates work
 - **Built-in-only** — simpler but breaks in environments without the built-ins, and doesn't handle edge cases that need custom enrichment
+
+---
+
+## Decision 005: Rename to `mdpowers` and decouple from Cowork branding
+
+**Status:** Accepted
+**Date:** 2026-04-09
+
+**Context:** The plugin was originally named `mdpowers-cowork` and the README described it as "A Claude Cowork plugin". In practice, the plugin follows the standard Claude Agent SDK plugin contract (`.claude-plugin/plugin.json` + `skills/<name>/SKILL.md`) and has no runtime dependency on Cowork — it can load in Claude Code, Cursor (via MCP), the Claude desktop app, or any custom Agent SDK host. The "-cowork" suffix and the README framing were misleading: they signalled "this only works in Cowork" when the plugin was actually host-agnostic by construction.
+
+A real portability bug made this concrete. The `clip` skill had three hardcoded references to a stale Cowork session slug (`/sessions/cool-exciting-euler/.local/`). These paths were broken even within Cowork (each session has a different slug) and guaranteed to fail anywhere else. The bug had survived because nobody had tested the plugin outside the environment where it was originally authored — which itself was a symptom of the branding signalling that Cowork was the only target.
+
+Separately, the repository URL in `plugin.json` pointed at `github.com/montymerlin/mdpowers-cowork`, which was never the actual repo name — the real repo is `github.com/montymerlin/mdpowers-plugin`. This was a copy-paste error from an earlier version of the manifest that had gone unnoticed.
+
+**Decision:** Rename the plugin from `mdpowers-cowork` to `mdpowers` and explicitly decouple it from Cowork branding. Specifically:
+
+1. **Plugin name** in `plugin.json`: `mdpowers-cowork` → `mdpowers`. This changes the skill namespace from `mdpowers-cowork:clip` to `mdpowers:clip`.
+2. **Repository URL** in `plugin.json`: fix to `github.com/montymerlin/mdpowers-plugin` (the real value).
+3. **Version bump** to 0.3.1 (technically a breaking change for anyone importing `mdpowers-cowork:...`, but the plugin has no known external users yet).
+4. **Fix the clip hardcoded paths bug**: replace the stale session-slug paths with a portable install bootstrap using `$MDPOWERS_NODE_PREFIX` (defaulting to `$XDG_DATA_HOME/mdpowers/node` or `$HOME/.local/share/mdpowers/node`).
+5. **Add a new top-level file, COMPATIBILITY.md**, documenting the supported-host matrix, runtime contract, per-host quirks, and portability testing procedure. This lets CLAUDE.md stay focused on conventions and agent boundaries without getting clogged with environment details.
+6. **Sweep the docs** to remove Cowork-as-primary framing: README, CLAUDE.md, DECISIONS.md, ROADMAP.md, and CHANGELOG.md all get their titles and intros updated. The `convert` skill references get the same treatment — Cowork becomes one example of a constrained environment, not the motivating case.
+7. **Add an 8th design principle**: "Host-agnostic by construction — no hardcoded paths, no assumed tools, no branding to a specific host." This crystallises the lesson from this decision into a rule future skill authors can't easily miss.
+
+**Consequences:**
+- Users in Claude Code, Cursor, and other Agent SDK hosts can now install and use the plugin without the documentation confusing them about whether it'll work
+- The `clip` skill is actually portable (was broken even in Cowork before this fix)
+- Future skill authors have an explicit "no hardcoded paths" rule to follow
+- Breaking change: anyone importing `mdpowers-cowork:...` must update to `mdpowers:...` (no known external users as of this rename, so impact is limited)
+- The GitHub repo name stays as `mdpowers-plugin` — no repo rename needed, just a manifest fix
+- COMPATIBILITY.md becomes the first place to look for portability questions, reducing churn in CLAUDE.md
+
+**Alternatives Considered:**
+
+- **Keep the name, just fix the docs** — conservative, no breaking change, but keeps the misleading `mdpowers-cowork:...` skill namespace and doesn't signal the shift in positioning
+- **Rename the GitHub repo too** (`mdpowers-plugin` → `mdpowers`) — cleaner, but adds a redirect that everyone has to update, and the current name is fine
+- **Skip COMPATIBILITY.md and put everything in CLAUDE.md** — simpler (one less file), but CLAUDE.md is already ~150 lines and was going to bloat further; separating host-specific details into a dedicated file keeps both documents focused
+- **Add the host-agnostic principle without renaming** — would leave the misleading name in place while claiming the plugin is host-agnostic; internally inconsistent
 
 ---
 

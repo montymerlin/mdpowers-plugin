@@ -44,7 +44,7 @@ Triggered when: the commons reaches a scale where per-conversion learning become
 Potential additions:
 
 - **Automatic QMD indexing** — converted files get registered with QMD immediately, so they become searchable without manual steps.
-- **Feedback store** — a lightweight log of pitfalls encountered in past conversions (e.g. "docling OOM'd in Cowork on this file size", "marker produced 2-column bleed on this journal") that the next Probe reads to avoid repeating mistakes.
+- **Feedback store** — a lightweight log of pitfalls encountered in past conversions (e.g. "docling OOM'd in a low-RAM sandbox on this file size", "marker produced 2-column bleed on this journal") that the next Probe reads to avoid repeating mistakes.
 - **Self-updating recipe catalogue** — when deviations from recipes are logged consistently, the catalogue updates to reflect the learned patterns.
 - **Cross-document reconciliation** — detect when two converted docs cite the same source and auto-link them.
 
@@ -63,7 +63,7 @@ Ideas that are neat but not clearly worth the complexity:
 
 These are design choices, not missing features:
 
-- **Prose quality editing** — `convert` is a mechanical correctness tool. Prose quality review is handled by `superpowers-cowork:two-stage-review` separately.
+- **Prose quality editing** — `convert` is a mechanical correctness tool. Prose quality review is handled by the Superpowers `two-stage-review` skill separately (if installed).
 - **Content generation** — `convert` doesn't write new content. It only transforms existing content.
 - **Format conversion to non-markdown targets** — `convert` is specifically document-to-markdown. If you need markdown-to-docx or markdown-to-pdf, use the built-in `docx`/`pdf` skills directly.
 - **Real-time OCR of live camera input** — `convert` operates on files, not streams.

@@ -1,14 +1,15 @@
-# CLAUDE.md — mdpowers-cowork
+# CLAUDE.md — mdpowers
 
-Markdown superpowers for knowledge gardens. A Claude Cowork plugin providing adaptive document-to-markdown conversion and web clipping, optimised for AI-readable output.
+Markdown superpowers for knowledge gardens. A host-agnostic Claude Agent SDK plugin providing adaptive document-to-markdown conversion and web clipping, optimised for AI-readable output. Runs in Claude Code, Cursor, the Claude desktop app (Cowork mode), and any other Agent SDK host.
 
 ## Project Identity
 
-- **Name:** mdpowers-cowork
+- **Name:** mdpowers
 - **Stack:** Claude Agent SDK plugin (skills + helper scripts in Python and JavaScript)
 - **Purpose:** Turn documents (PDF, docx, pptx, epub, html, images) and web pages into clean, structured, AI-readable markdown
-- **Repository:** https://github.com/montymerlin/mdpowers-cowork
+- **Repository:** https://github.com/montymerlin/mdpowers-plugin
 - **Authored by:** Monty Merlin
+- **Portability contract:** host-agnostic by construction. No hardcoded paths, no assumed tools, no host-specific branding. Everything is probed at runtime and degrades gracefully. See [COMPATIBILITY.md](COMPATIBILITY.md) for the supported-host matrix and runtime requirements.
 
 ## Directory Structure
 
@@ -16,13 +17,12 @@ Markdown superpowers for knowledge gardens. A Claude Cowork plugin providing ada
 mdpowers-plugin/
 ├── CLAUDE.md                       # this file — agent instruction set
 ├── README.md                       # human-facing overview
+├── COMPATIBILITY.md                # host matrix + runtime contract
 ├── DECISIONS.md                    # architectural decision log
 ├── ROADMAP.md                      # future directions
 ├── CHANGELOG.md                    # narrative change history
 ├── .claude-plugin/
 │   └── plugin.json                 # plugin manifest
-├── .claude/
-│   └── settings.local.json         # Claude Code settings
 └── skills/
     ├── convert/                    # v0.3 — adaptive document-to-markdown
     │   ├── SKILL.md
@@ -59,11 +59,12 @@ mdpowers-plugin/
 - Helper scripts (Python, JavaScript) go in `skills/<skill-name>/scripts/` and are invoked via `${CLAUDE_PLUGIN_ROOT}/skills/<skill-name>/scripts/...`
 - Frontmatter descriptions must include the full trigger phrase vocabulary users are likely to say — ambiguity in triggering is the most common cause of skills not being invoked
 - Every skill should articulate its own deviation guidance — "guides not rails" is the project-wide principle
+- **Never hardcode host-specific paths** (session slugs, absolute home paths, Cowork mount points). Use `${CLAUDE_PLUGIN_ROOT}`, shell env vars, or probe at runtime. Portability is a first-class concern.
 
 ### Naming
 
 - **Files:** kebab-case for markdown documents, snake_case for Python scripts, camelCase or kebab-case for JavaScript
-- **Skills:** short, generic, memorable names (`convert`, not `adaptive-document-converter`)
+- **Skills:** short, generic, memorable names (`convert`, not `adaptive-document-converter`). Skill namespace is `mdpowers:<skill>` (e.g., `mdpowers:clip`, `mdpowers:convert`).
 - **Playbooks:** numbered `P1-*.md`, `P2-*.md`, etc. for easy cross-reference from recipes
 - **Branches:** `feature/<short>`, `fix/<short>`, version branches like `v0.3-convert-skill`
 
@@ -77,6 +78,7 @@ mdpowers-plugin/
 
 - **README.md** is the human-facing overview — what the plugin does, how to install, skill table
 - **CLAUDE.md** (this file) is the agent instruction set — conventions, boundaries, directory map
+- **COMPATIBILITY.md** is the portability contract — supported hosts, runtime requirements, per-host quirks
 - **DECISIONS.md** logs architectural choices — add entries before implementing significant changes
 - **ROADMAP.md** captures future directions — items flow to DECISIONS.md when evaluated
 - **CHANGELOG.md** tracks evolution narratively — update after significant work sessions
@@ -93,15 +95,18 @@ mdpowers-plugin/
 - Update CHANGELOG.md after significant work sessions
 - Test new skills against real documents before shipping
 - Bump the version in `.claude-plugin/plugin.json` for every release
+- When adding a skill with a new dependency, update COMPATIBILITY.md
 
 ### Don't
 
 - Auto-commit changes — always show the diff first
-- Hardcode assumptions about environment (RAM, installed tools) — probe at runtime
+- Hardcode paths (session slugs, absolute home paths, Cowork mount points) — use `${CLAUDE_PLUGIN_ROOT}`, env vars, or runtime probes
+- Hardcode assumptions about environment (RAM, installed tools, host type) — probe at runtime
 - Write helper scripts when an existing library or built-in skill would work
 - Remove the deprecated `pdf-convert` skill until v0.4 (give users a migration window)
 - Duplicate content between files — reference instead
 - Bundle heavy dependencies at install time — use lazy loading on first skill invocation
+- Brand the plugin to a single host ("Cowork plugin", "Claude Code plugin") — it's host-agnostic
 
 ## Design Principles
 
@@ -119,6 +124,8 @@ mdpowers-plugin/
 
 7. **Source-grounded defaults** — Every convention should trace to a documented source or a specific lesson learned from real usage. No convention exists "because it seemed right."
 
+8. **Host-agnostic by construction** — No hardcoded paths, no assumed tools, no branding to a specific host. The plugin works wherever the Agent SDK loads plugins. When in doubt, probe; when probing fails, degrade.
+
 ## Key Skills Overview
 
 ### convert (primary skill, v0.3)
@@ -127,9 +134,9 @@ Adaptive document-to-markdown orchestrator. Five phases: Probe → Plan → Exec
 
 Entry point: `skills/convert/SKILL.md`.
 
-### clip (v0.2)
+### clip (v0.2+)
 
-Web-page-to-markdown via Defuddle. Strips ads/nav/chrome, saves clean markdown with YAML frontmatter. Unchanged from v0.2.
+Web-page-to-markdown via Defuddle. Strips ads/nav/chrome, saves clean markdown with YAML frontmatter. In v0.3.1 the install bootstrap was made host-agnostic (previously had session-slug paths hardcoded).
 
 Entry point: `skills/clip/SKILL.md`.
 
@@ -141,9 +148,10 @@ Entry point: `skills/pdf-convert/SKILL.md` (contains deprecation notice).
 
 ## References
 
+- [README.md](README.md) — human-facing overview and install guide
+- [COMPATIBILITY.md](COMPATIBILITY.md) — supported hosts, runtime contract, per-host quirks
 - [DECISIONS.md](DECISIONS.md) — architectural decision log
 - [ROADMAP.md](ROADMAP.md) — future directions and inspiration
 - [CHANGELOG.md](CHANGELOG.md) — narrative change history
-- [README.md](README.md) — human-facing overview
 
 <!-- Scaffold sources: Anthropic CLAUDE.md conventions, HumanLayer CLAUDE.md best practices, Anthropic Agent Skills architecture, agentic-scaffold-plugin v0.1.0 -->

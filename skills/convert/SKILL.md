@@ -68,7 +68,7 @@ Probe runs two parallel detections:
 Output: a short profile you carry into Plan. Example:
 ```
 Source: 25-page PDF, widescreen, image-heavy, 0.3 text-image ratio — likely slide deck
-Environment: Cowork sandbox, 3.8GB RAM, pymupdf ✓, docling ✗ (OOM risk), built-in pptx ✓
+Environment: low-RAM sandbox (3.8GB), pymupdf ✓, docling ✗ (OOM risk), built-in pptx ✓
 ```
 
 ## Phase 2 — Plan
@@ -144,8 +144,7 @@ Commons-awareness is a soft detection — when it fires, **name what's being app
 
 `convert` leans on other skills rather than reimplementing them:
 
-- **Built-in Anthropic skills** — `pdf`, `docx`, `pptx`, `xlsx`. Always preferred as engines when they cover the need. `convert` is the orchestrator; these are the workers.
-- **`superpowers-cowork:two-stage-review`** — for prose quality review after conversion. `convert` does not second-guess prose; if the user wants editorial review, invoke this separately.
-- **`superpowers-cowork:brainstorming`** — if Probe can't confidently match any recipe and the source is genuinely novel, consider invoking brainstorming to design the conversion approach before returning to `convert`.
-- **`mdpowers-cowork:clip`** — for web-page-to-markdown. `convert` and `clip` are siblings; if the source is a URL, use `clip`; if it's a file, use `convert`.
-- **Deprecated:** `mdpowers-cowork:pdf-convert` — the old docling-first PDF converter. This skill (`convert`) replaces it. If you find yourself reaching for `pdf-convert`, use `convert` instead.
+- **Built-in Anthropic skills** — `pdf`, `docx`, `pptx`, `xlsx`. Always preferred as engines when they cover the need. `convert` is the orchestrator; these are the workers. Availability varies by host — see `references/environments.md` and the top-level `COMPATIBILITY.md` for the full matrix.
+- **`mdpowers:clip`** — for web-page-to-markdown. `convert` and `clip` are siblings; if the source is a URL, use `clip`; if it's a file, use `convert`.
+- **Deprecated:** `mdpowers:pdf-convert` — the old docling-first PDF converter. This skill (`convert`) replaces it. If you find yourself reaching for `pdf-convert`, use `convert` instead.
+- **Superpowers skills** (if installed) — `two-stage-review` for prose quality review after conversion, `brainstorming` for genuinely novel sources where Probe can't match any recipe. Namespace varies by how the user installs the Superpowers plugin (`superpowers:...` or `superpowers-cowork:...`). These are optional siblings, not hard dependencies.

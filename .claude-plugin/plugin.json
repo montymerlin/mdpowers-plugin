@@ -1,11 +1,11 @@
 {
-  "name": "mdpowers-cowork",
-  "version": "0.3.0",
-  "description": "Markdown superpowers for knowledge gardens. Adaptive document-to-markdown conversion (PDF, docx, pptx, epub, html, image) and web clipping (Defuddle), optimised for AI-readable output.",
+  "name": "mdpowers",
+  "version": "0.3.1",
+  "description": "Markdown superpowers for knowledge gardens. Adaptive document-to-markdown conversion (PDF, docx, pptx, epub, html, image) and web clipping (Defuddle), optimised for AI-readable output. Host-agnostic — runs in Claude Code, Cursor, the desktop app, and Cowork.",
   "author": {
     "name": "Monty Merlin"
   },
-  "repository": "https://github.com/montymerlin/mdpowers-cowork",
+  "repository": "https://github.com/montymerlin/mdpowers-plugin",
   "license": "MIT",
-  "keywords": ["web-clipper", "markdown", "defuddle", "docling", "pdf", "docx", "pptx", "convert", "reading", "knowledge-management", "content-ingestion", "agentic"]
+  "keywords": ["web-clipper", "markdown", "defuddle", "docling", "pdf", "docx", "pptx", "convert", "reading", "knowledge-management", "content-ingestion", "agentic", "claude-code", "claude-agent-sdk"]
 }

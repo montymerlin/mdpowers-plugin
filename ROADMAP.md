@@ -1,4 +1,4 @@
-# Roadmap — mdpowers-cowork
+# Roadmap — mdpowers
 
 Where this plugin could go. Items here are aspirations, not commitments — a place to capture ideas, inspiration, and future directions without the pressure of a deadline.
 
@@ -16,7 +16,9 @@ Items likely to be addressed in the next development cycle.
 
 - **Remove `pdf-convert` in v0.4** — After one release cycle of deprecation, remove the legacy skill. Merge its `knowledge-bank.md` and helper scripts (`pdf_postprocess.py`, `pdf_verify.py`) into `skills/convert/references/` as appropriate. `status: idea`
 
-- **Publish v0.3 to GitHub** — Create the v0.3 release with the `convert` skill, updated README, scaffold files, and a CHANGELOG entry. Tag the release. `status: idea`
+- **Publish v0.3.1 to GitHub** — Tag and release v0.3.1 with the `convert` skill, the portability pass (rename to `mdpowers`, COMPATIBILITY.md, clip bug fix), updated scaffold files, and a CHANGELOG entry. `status: idea`
+
+- **Portability test matrix** — Verify the plugin loads and runs in at least three hosts (Claude Code, Cursor via MCP, Cowork desktop app). Document any per-host quirks in COMPATIBILITY.md. Adds a "Tested on:" badge line to the README. `status: idea`
 
 ## Future explorations
 
@@ -44,7 +46,7 @@ Inspiration, references, repos, articles, and possibilities. Things seen or thou
 
 - **QMD integration** — Bundle a QMD MCP server connection in the plugin's `.mcp.json` so clipped/converted content can be immediately indexed and searchable without a separate `qmd update && qmd embed` step. Open question: QMD is already configured at the workspace level in bridging-worlds, so bundling it here would duplicate the server definition. Worth exploring whether the plugin can reference the existing workspace-level MCP or whether it needs its own. `status: parked`
 
-- **Feedback store for conversion pitfalls** — A lightweight log of pitfalls encountered in past conversions (e.g. "docling OOM'd on this file size", "marker produced 2-column bleed on this journal") that the next Probe reads to avoid repeating mistakes. Would require a persistent store outside the plugin itself. `status: parked`
+- **Feedback store for conversion pitfalls** — A lightweight log of pitfalls encountered in past conversions (e.g. "docling OOM'd on this file size in a low-RAM sandbox", "marker produced 2-column bleed on this journal") that the next Probe reads to avoid repeating mistakes. Would require a persistent store outside the plugin itself. `status: parked`
 
 - **Self-updating recipe catalogue** — When deviations from recipes are logged consistently, the catalogue updates to reflect learned patterns. Needs the feedback store above. `status: parked`
 
@@ -68,5 +70,6 @@ Items that have been evaluated. The reasoning lives in [DECISIONS.md](DECISIONS.
 - **Replace pdf-convert with adaptive convert skill** — → Decision 002. `status: decided`
 - **"Guides not rails" as project-wide principle** — → Decision 003. `status: decided`
 - **Prefer built-in Anthropic skills as first-choice engines** — → Decision 004. `status: decided`
+- **Rename to `mdpowers` and decouple from Cowork branding** — → Decision 005. `status: decided`
 
 <!-- Scaffold sources: GitHub roadmap patterns, Mozilla Science roadmapping guide, agile parking lot conventions, YAGNI principle, agentic-scaffold-plugin v0.1.0 -->

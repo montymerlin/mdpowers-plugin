@@ -1,6 +1,6 @@
-# mdpowers-cowork
+# mdpowers
 
-Markdown superpowers for knowledge gardens. A Claude Cowork plugin for adaptive document-to-markdown conversion and web clipping, optimised for AI-readable output.
+Markdown superpowers for knowledge gardens. A host-agnostic Claude Agent SDK plugin for adaptive document-to-markdown conversion and web clipping, optimised for AI-readable output. Runs in Claude Code, Cursor, the Claude desktop app (Cowork mode), and any other host that speaks the Agent SDK plugin contract.
 
 ## Skills
 
@@ -25,20 +25,43 @@ The core design principle is "guides not rails": recipes and playbooks are defau
 
 See [`skills/convert/SKILL.md`](skills/convert/SKILL.md) for the full design, and [`DECISIONS.md`](DECISIONS.md) for the reasoning behind this architecture.
 
+## Install
+
+The plugin follows the standard Agent SDK plugin contract (`.claude-plugin/plugin.json` + `skills/<name>/SKILL.md`), so any host that loads Agent SDK plugins can use it.
+
+**Claude Code:**
+
+```bash
+claude plugins install github.com/montymerlin/mdpowers-plugin
+```
+
+Or clone and symlink for local development:
+
+```bash
+git clone https://github.com/montymerlin/mdpowers-plugin.git
+ln -s "$(pwd)/mdpowers-plugin" ~/.claude/plugins/mdpowers
+```
+
+**Cursor (via MCP):** add as an MCP server in Cursor's MCP settings and restart Cursor. Skills will appear as tool calls.
+
+**Claude desktop app (Cowork mode):** drop the plugin directory into your Cowork plugins folder.
+
+For the full compatibility matrix, runtime contract, and per-host quirks, see [COMPATIBILITY.md](COMPATIBILITY.md).
+
 ## Dependencies
 
-All dependencies use lazy installation — they're only probed when a skill is first invoked in a session, not at plugin startup.
+All dependencies use lazy installation — they're only probed when a skill is first invoked in a session, not at plugin startup. The `convert` skill probes what's available at runtime and falls back gracefully when a preferred tool is missing.
 
 | Skill | Dependency | When needed | Install method |
 |-------|-----------|-------------|----------------|
-| `/convert` | Built-in `pdf`/`docx`/`pptx` skills | Always preferred | Native (no install) |
+| `/convert` | Built-in `pdf`/`docx`/`pptx` skills | Always preferred when available | Native (no install) |
 | `/convert` | pymupdf | Universal fallback for PDF | `pip install pymupdf --break-system-packages` |
 | `/convert` | pandoc | docx, html, epub | `apt install pandoc` or `brew install pandoc` |
-| `/convert` | docling (optional) | Claude Code environments with ≥6GB RAM | `pip install docling --break-system-packages` |
-| `/convert` | marker (optional) | Claude Code environments with GPU/beefy CPU | `pip install marker-pdf --break-system-packages` |
-| `/clip` | defuddle (npm) | Always | `npm install -g defuddle` |
+| `/convert` | docling (optional) | Hosts with ≥6GB RAM | `pip install docling --break-system-packages` |
+| `/convert` | marker (optional) | Hosts with GPU or beefy CPU | `pip install marker-pdf --break-system-packages` |
+| `/clip` | defuddle (npm) | Always | Auto-installed on first use at `$MDPOWERS_NODE_PREFIX` |
 
-All skills require **Node.js** and **Python**, which are available in the Cowork sandbox.
+**Runtime requirements:** Python 3.10+ and Node 18+ on PATH, plus a writable home directory (or `MDPOWERS_NODE_PREFIX` set to a writable path). See [COMPATIBILITY.md](COMPATIBILITY.md) for the full contract.
 
 ## Project Structure
 
@@ -46,11 +69,11 @@ All skills require **Node.js** and **Python**, which are available in the Cowork
 mdpowers-plugin/
 ├── README.md                       # this file — human-facing overview
 ├── CLAUDE.md                       # agent instruction set
+├── COMPATIBILITY.md                # host matrix + runtime contract
 ├── DECISIONS.md                    # architectural decision log
 ├── ROADMAP.md                      # future directions
 ├── CHANGELOG.md                    # narrative change history
 ├── .claude-plugin/plugin.json      # plugin manifest
-├── .claude/settings.local.json     # Claude Code settings
 └── skills/
     ├── convert/                    # adaptive document-to-markdown (v0.3)
     ├── clip/                       # web-page-to-markdown via Defuddle
@@ -68,6 +91,7 @@ This plugin inherits the agentic-scaffold design principles. In brief:
 5. **Graceful degradation** — Fall back silently when tools are missing; record quality downgrades in frontmatter. Never silently produce garbage.
 6. **Decisions as first-class artifacts** — Significant choices get logged in DECISIONS.md before implementation.
 7. **Source-grounded defaults** — Every convention traces to a documented source or a lesson from real usage.
+8. **Host-agnostic by construction** — No hardcoded paths, no assumed tools, no branding to a specific host. Probe at runtime; degrade gracefully.
 
 The full rationale for each principle is in [`CLAUDE.md`](CLAUDE.md).
 
@@ -90,6 +114,7 @@ Contributions welcome. Before making structural changes:
 3. Log new decisions before implementing them
 4. Follow the skill-authoring conventions in CLAUDE.md
 5. Update CHANGELOG.md after significant work sessions
+6. For portability changes, also update [COMPATIBILITY.md](COMPATIBILITY.md)
 
 ## License
 

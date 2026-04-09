@@ -216,7 +216,7 @@ recipe: slide-deck-visual
 extracted_via: pymupdf 1.23.6
 converted_on: 2026-04-09
 quality: degraded
-quality_notes: "docling unavailable in Cowork sandbox (OOM risk); pymupdf fallback used. Slide renders are good but some in-slide text extraction may be missing."
+quality_notes: "docling unavailable in this environment (low-RAM sandbox, OOM risk); pymupdf fallback used. Slide renders are good but some in-slide text extraction may be missing."
 slides: 25
 deck_type: pitch
 summary: "A 25-slide overview of the Kwaxala initiative — a regenerative forest finance stack combining Tenured Forest Land, Living Forest Standard, Catalytic Commitment Facility, and Living Forest Fund."

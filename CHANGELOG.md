@@ -1,6 +1,29 @@
-# Changelog — mdpowers-cowork
+# Changelog — mdpowers
 
 A narrative record of how this plugin evolves. Updated after significant work sessions, not per-commit. Focuses on the "why" and "what changed" rather than granular diffs.
+
+---
+
+## 2026-04-09 — v0.3.1: portability pass and rename to `mdpowers`
+
+Follow-up release on the same day as v0.3. This one was motivated by a simple observation from the user: the README still described the plugin as "A Claude Cowork plugin" even though the Agent SDK plugin contract is host-agnostic by construction. The framing was signalling "this only works in Cowork" when the plugin should work in Claude Code, Cursor (via MCP), the Claude desktop app, and any other host that loads Agent SDK plugins.
+
+An audit turned up one real portability bug alongside the branding drift. The `clip` skill had three hardcoded references to a stale Cowork session slug (`/sessions/cool-exciting-euler/.local/`) from the session it was originally authored in. These paths were broken even within Cowork — each session has a different slug — and guaranteed to fail in any other host. The bug had survived because nobody had tested the plugin outside the environment where it was written, which was itself a symptom of the Cowork-centric framing.
+
+The fix was a full rename and a portability pass:
+
+- **Plugin name:** `mdpowers-cowork` → `mdpowers`. Skill namespace becomes `mdpowers:clip`, `mdpowers:convert`, etc.
+- **Repository URL** in `plugin.json`: fixed to `github.com/montymerlin/mdpowers-plugin` (was pointing at a nonexistent `mdpowers-cowork` repo — an old copy-paste error from the v0.2 manifest).
+- **Clip install bootstrap** rewritten to use `$MDPOWERS_NODE_PREFIX` (defaulting to `$XDG_DATA_HOME/mdpowers/node` or `$HOME/.local/share/mdpowers/node`). No more hardcoded session slugs. Set the env var to override if the default isn't writable.
+- **New file: COMPATIBILITY.md** at the plugin root. Documents the supported-host matrix (Claude Code, Cursor, desktop app Cowork mode, custom Agent SDK hosts, direct API), the runtime contract (Python 3.10+, Node 18+, writable home), per-host quirks (low-RAM docling OOM, hosts without built-in skills, read-only homes), and a portability testing procedure. This keeps CLAUDE.md focused on conventions without getting clogged with environment details.
+- **Doc sweep across CLAUDE.md, README.md, DECISIONS.md, ROADMAP.md, CHANGELOG.md** — titles updated, Cowork-as-primary framing removed, install section added to README covering all supported hosts, repo URL corrected everywhere. The `convert` skill references now treat Cowork as one example of a constrained environment rather than the motivating case.
+- **New design principle #8:** "Host-agnostic by construction — no hardcoded paths, no assumed tools, no branding to a specific host." Added to CLAUDE.md and README.md so future skill authors can't easily miss it.
+
+One new ADR logged: **D005 (rename to `mdpowers` and decouple from Cowork branding)**, which documents the branding drift, the portability bug, the fix, and the alternatives considered (including keeping the name and just fixing the docs, which was rejected as internally inconsistent).
+
+Breaking change for any external users importing `mdpowers-cowork:...` skills — they'll need to update to `mdpowers:...`. The plugin has no known external users yet, so the impact is limited. The GitHub repo name stays as `mdpowers-plugin`; no repo rename needed, just a manifest fix.
+
+**Next:** a proper portability test matrix across at least three hosts (Claude Code, Cursor, Cowork), documented in COMPATIBILITY.md with a "Tested on:" line in the README. Added to the roadmap.
 
 ---
 
@@ -8,7 +31,7 @@ A narrative record of how this plugin evolves. Updated after significant work se
 
 Major release. Two big changes landed together.
 
-**The `convert` skill replaces `pdf-convert`.** A real-world test converting the Kwaxala Overview 2026 pitch deck exposed several fundamental problems with the old `pdf-convert` skill. First, it was docling-first and docling OOMs in the Cowork sandbox (3.8GB RAM), so the skill couldn't actually run on its target environment. Second, it only handled PDFs — users wanted consistent treatment for docx, pptx, and other formats. Third, it produced flat text extraction with no semantic enrichment, meaning the output was technically markdown but not meaningfully navigable or AI-readable. A 25-slide pitch deck full of flowcharts and layered stack diagrams came out as 25 pages of loose captions with no structure.
+**The `convert` skill replaces `pdf-convert`.** A real-world test converting the Kwaxala Overview 2026 pitch deck exposed several fundamental problems with the old `pdf-convert` skill. First, it was docling-first and docling OOMs in low-RAM environments (the Cowork sandbox with ~3.8GB was the specific motivating case), so the skill couldn't actually run on constrained hosts. Second, it only handled PDFs — users wanted consistent treatment for docx, pptx, and other formats. Third, it produced flat text extraction with no semantic enrichment, meaning the output was technically markdown but not meaningfully navigable or AI-readable. A 25-slide pitch deck full of flowcharts and layered stack diagrams came out as 25 pages of loose captions with no structure.
 
 The redesign started with a superpowers-style brainstorming session that went through six chunks of design decisions with explicit approval gates. The chosen architecture is an adaptive orchestrator: five phases (Probe → Plan → Execute → Enrich → Verify), seven recipe archetypes, six enrichment playbooks, and a three-tier planning budget (tight / standard / deep) that scales ceremony to document complexity. Simple one-pagers get tight treatment with no ceremony; novel or complex documents get a plan artifact and user review before execution. The key design principle — "guides not rails" — was named explicitly after the user pointed out that over-prescription can itself be a failure mode.
 

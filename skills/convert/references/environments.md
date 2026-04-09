@@ -2,12 +2,14 @@
 
 Probe detects the environment once per conversion. The results drive engine selection and degradation. This guide covers what to probe, how to interpret results, and the per-recipe engine preference lists with fallback rules.
 
+For the supported-host matrix and the plugin's runtime contract (Python 3.10+, Node 18+, writable home), see the top-level `COMPATIBILITY.md`. This file is the agent-facing *how to probe*; COMPATIBILITY.md is the human-facing *what we support*.
+
 ## The environment profile
 
 Probe produces a small profile with these fields:
 
 ```
-environment: cowork-sandbox | claude-code-macos | claude-code-linux | unknown
+environment: claude-code-macos | claude-code-linux | cowork-sandbox | cursor | desktop-app | ci-runner | unknown
 ram_gb: <float>                    # soft probe, rounded
 disk_free_gb: <float>              # in the working directory
 network: full | limited | none     # can we pip install on demand?
@@ -27,12 +29,17 @@ builtin_skills:
   xlsx: ✓ | ✗
 ```
 
+The `environment` field is a best-effort tag for narration and debugging — don't condition behaviour on it. Condition behaviour on `ram_gb`, `tools`, and `builtin_skills` instead. That way the plugin keeps working in hosts the tag doesn't recognise.
+
 ## How to detect each field
 
 ### Environment type
-- Check `uname -a` for platform (Linux vs Darwin)
-- Check for Cowork-specific env markers (path contains `/sessions/`, `.remote-plugins/` structure)
-- Fallback: `unknown`
+- Check `uname -a` for platform (Linux vs Darwin; Windows falls back to `unknown`)
+- Check for Cowork session markers (path contains `/sessions/` + `.remote-plugins/` structure) → `cowork-sandbox`
+- Check for Cursor MCP markers (env var `CURSOR_` prefix, or running under an MCP stdio transport) → `cursor`
+- Check for CI markers (env vars `CI=true`, `GITHUB_ACTIONS`, `BUILDKITE`, etc.) → `ci-runner`
+- Check for Claude Code (env var `CLAUDE_CODE_VERSION` or similar, if present) → `claude-code-macos` / `claude-code-linux`
+- Fallback: `unknown` — this is fine; the concrete capability fields still drive decisions
 
 ### RAM
 - Linux: `free -m` or read `/proc/meminfo` (MemTotal)
@@ -47,17 +54,17 @@ builtin_skills:
 ### Network
 - Attempt `pip install --dry-run <anything>` or a quick `curl -s --head https://pypi.org`
 - If it times out or fails: `limited` or `none`
-- In Cowork sandbox, usually `limited` (some packages pre-installed, no fresh installs)
+- In constrained sandboxes (Cowork, some CI runners), this is usually `limited` — some packages pre-installed, no fresh installs
 
 ### Tools
 - `which <tool>` for each
 - For Python tools: `python -c "import <tool>"` with `--break-system-packages` awareness
 - Record the version if cheap to get (`<tool> --version` when it's fast)
 
-**Special case — docling OOM risk:** even if docling is installed, flag it as unavailable if `ram_gb < 6`. Docling needs substantial memory and will be SIGKILL'd in tight environments. The Cowork sandbox with 3.8GB RAM is the motivating case. Record this as `docling: ✗ (oom-risk)` in the profile.
+**Special case — docling OOM risk:** even if docling is installed, flag it as unavailable if `ram_gb < 6`. Docling needs substantial memory and will be SIGKILL'd in tight environments. The Cowork sandbox with ~3.8GB RAM is the motivating case, but the rule applies to any host below the threshold (small CI runners, constrained containers, etc.). Record this as `docling: ✗ (oom-risk)` in the profile.
 
 ### Built-in skills
-- Check whether the skill is listed in the active skills. Built-in skills from Anthropic (`pdf`, `docx`, `pptx`, `xlsx`) are almost always available when running in Claude Code or Cowork.
+- Check whether the skill is listed in the active skills registry. Built-in skills from Anthropic (`pdf`, `docx`, `pptx`, `xlsx`) are typically available in Claude Code and the Claude desktop app (including Cowork mode), but **may not be available** in Cursor via MCP or in custom Agent SDK hosts. Always probe rather than assume.
 
 ## Engine preference lists
 
@@ -67,10 +74,10 @@ Each recipe declares an ordered preference list. Probe picks the highest-prefere
 
 **Quality order (best → worst):**
 
-1. **Built-in Anthropic `pdf` skill** — always first choice when available. Maintained by the people who trained the model. Handles layout, figures, tables, OCR, citations.
-2. **marker** — Claude Code only. Best ML-based quality for academic papers and complex layouts. Needs GPU or beefy CPU.
-3. **docling** — Claude Code only (when RAM ≥6GB). IBM's tool; good quality but heavy. Known to OOM in Cowork sandbox.
-4. **pymupdf + post-processing** — universal fallback. Works in any environment including Cowork. Produces decent text extraction without layout analysis.
+1. **Built-in Anthropic `pdf` skill** — always first choice when available. Maintained by the people who trained the model. Handles layout, figures, tables, OCR, citations. Availability varies by host — probe first.
+2. **marker** — heavy ML extractor; best quality for academic papers and complex layouts. Needs GPU or beefy CPU — typically only viable in unconstrained Claude Code environments.
+3. **docling** — IBM's tool; good quality but memory-hungry. Requires RAM ≥6GB. OOMs reliably in low-RAM sandboxes (Cowork, small CI runners).
+4. **pymupdf + post-processing** — universal fallback. Works in any environment with Python. Produces decent text extraction without layout analysis.
 5. **pdftotext + pandoc** — last resort. Lowest quality but very fast and available almost everywhere.
 
 ### For docx inputs
@@ -153,8 +160,8 @@ Source: Kwaxala Overview 2026.pdf
   - High image density (25 significant visuals)
   - No DOI, no ISBN, no academic metadata
 
-Environment: cowork-sandbox
-  - RAM: 3.8 GB (tight)
+Environment: cowork-sandbox (low-RAM)
+  - RAM: 3.8 GB (tight — docling will OOM)
   - Disk: 9.6 GB free
   - Tools: pymupdf ✓, pandoc ✓, docling ✗ (oom-risk), marker ✗
   - Built-in skills: pdf ✓, docx ✓, pptx ✓
