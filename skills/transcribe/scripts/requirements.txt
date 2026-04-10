@@ -1,0 +1,26 @@
+# mdpowers transcribe skill — Tier 1 (core) dependencies
+# These are sufficient for Path 1 (YouTube fast) including Whisper API fallback.
+# Install with: pip install -r requirements.txt
+
+yt-dlp>=2024.1.1
+openai>=1.12.0
+python-dotenv>=1.0.0
+tiktoken>=0.6.0
+
+# ---------------------------------------------------------------------------
+# Tier 2 — Path 2 (WhisperX local) heavy dependencies
+# Install separately via: bash scripts/install_path2.sh
+# These are NOT included here because they pull in ~3GB of models + PyTorch.
+#
+# whisperx>=3.1.1
+# faster-whisper>=1.0.0
+# pyannote.audio>=3.1.0
+# torch>=2.1.0
+# torchaudio>=2.1.0
+# huggingface_hub>=0.20.0
+# nltk>=3.8
+# ---------------------------------------------------------------------------
+
+# Tier 3 — NLTK words corpus (for vocab candidate discovery)
+# Install via: bash scripts/install_nltk_data.sh
+# This is a runtime download, not a pip package.

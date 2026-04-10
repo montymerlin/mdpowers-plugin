@@ -4,6 +4,14 @@ A narrative record of how this plugin evolves. Updated after significant work se
 
 ---
 
+## 2026-04-10 — New `transcribe` skill
+
+Added the `transcribe` skill for converting audio and video to structured, speaker-labelled markdown with adaptive vocabulary correction. The skill is decomposed into library modules and runners, supporting three pathways: P1 (YouTube native + Whisper API fallback, fast), P2 (WhisperX + pyannote diarization, local + high-quality), and P3 (cloud API services, stub). Vocabulary cascade uses XDG conventions for user-extensible word lists, with adaptive promotion from `custom/` to `standard/` based on frequency. Host-mode detection enables portable operation across Claude Code, Cursor, and Cowork without hardcoded paths. Implementation spans ~4400 lines of Python across 15 files (lib modules, runners, CLI entry points) plus 10 reference documents (environment setup, playbooks, anti-patterns, P1/P2/P3 pathway details, vocabulary handling, speaker identification, output format).
+
+The skill follows the "guides not rails" principle established in the plugin's core design: pathway selection is adaptive (probes available tools and chooses the best fit), but agents can override with explicit reasoning. Per-pathway success criteria and failure modes are documented in the reference playbooks. No hardcoded session slugs or assumed tools — everything probes at runtime.
+
+---
+
 ## 2026-04-09 — v0.3.1: portability pass and rename to `mdpowers`
 
 Follow-up release on the same day as v0.3. This one was motivated by a simple observation from the user: the README still described the plugin as "A Claude Cowork plugin" even though the Agent SDK plugin contract is host-agnostic by construction. The framing was signalling "this only works in Cowork" when the plugin should work in Claude Code, Cursor (via MCP), the Claude desktop app, and any other host that loads Agent SDK plugins.

@@ -14,6 +14,14 @@ Items likely to be addressed in the next development cycle.
 
 - **Validate `convert` against real documents** — Run the new skill on 3-5 documents of different archetypes (Kwaxala-style deck, Frontiers paper, IPBES report, one-page brief, scanned doc) and tune recipes based on what works and what breaks. Log observations to a new `docs/known-issues.md`. `status: active`
 
+- **P3 API service implementation** (`transcribe` skill) — Implement the cloud transcription service API stub (currently placeholder). Establish the contract for per-provider authentication (API keys), test with ≥1 real SaaS provider (e.g., AssemblyAI, Rev), update anti-patterns and output format docs. `status: idea`
+
+- **Batch playlist handling** (`transcribe` skill) — Support P1 (YouTube) bulk transcription with a playlist URL, emit a unified index markdown with per-video chapters and timestamps. Low-hanging fruit for power users who want to transcribe workshop series, courses, or multi-part talks in one go. `status: idea`
+
+- **Vocabulary auto-promotion** (`transcribe` skill) — Implement the frequency-based cascade logic that promotes custom vocabulary items to standard when they appear consistently across multiple transcriptions. Currently the infrastructure is in place (custom/standard split), the promotion logic is a stub. `status: idea`
+
+- **Cross-skill convert↔transcribe handoff** — When a user provides a video file that's encoded as MP4/WebM with audio, detect this and suggest transcribing the audio track instead of trying to convert the whole file. Conversely, when transcribing a presentation video, suggest converting the visible deck (if available separately) to structured slides. This is a "would you like to..." suggestion, not automatic. `status: idea`
+
 - **Remove `pdf-convert` in v0.4** — After one release cycle of deprecation, remove the legacy skill. Merge its `knowledge-bank.md` and helper scripts (`pdf_postprocess.py`, `pdf_verify.py`) into `skills/convert/references/` as appropriate. `status: idea`
 
 - **Publish v0.3.1 to GitHub** — Tag and release v0.3.1 with the `convert` skill, the portability pass (rename to `mdpowers`, COMPATIBILITY.md, clip bug fix), updated scaffold files, and a CHANGELOG entry. `status: idea`

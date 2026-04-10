@@ -1,0 +1,20 @@
+{
+  "_meta": {
+    "description": "Vocabulary template — fill in your domain-specific terms. Each category maps term names to their known mistranscriptions and context notes. The skill uses these to prime Whisper and post-correct transcripts.",
+    "schema": {
+      "category_name": {
+        "CorrectTerm": {
+          "mistranscriptions": ["variant one", "variant two"],
+          "context": "Brief note about when/where this term appears"
+        }
+      }
+    },
+    "updated": "2026-04-09"
+  },
+  "organisations": {},
+  "people": {},
+  "concepts": {},
+  "products_and_tools": {},
+  "acronyms": {},
+  "other": {}
+}

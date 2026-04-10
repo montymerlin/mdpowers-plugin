@@ -8,6 +8,7 @@ Markdown superpowers for knowledge gardens. A host-agnostic Claude Agent SDK plu
 |-------|---------|--------------|
 | `/convert` | "convert", "pdf to markdown", "docx to markdown", "pptx to markdown", "slide deck to markdown", upload a document | Adaptively converts any document (PDF, docx, pptx, epub, html, image) into structured, AI-readable markdown — with diagrams → mermaid, comparisons → tables, per-recipe enrichment, and graceful engine fallback |
 | `/clip` | "clip this", "save this page", "defuddle", paste a URL | Fetches a web page via Defuddle, strips ads/nav/chrome, saves clean markdown with YAML frontmatter |
+| `/transcribe` | "transcribe this", "transcribe video", "transcribe youtube", "transcribe audio", upload audio/video | Transcribes audio and video to structured, speaker-labelled markdown with adaptive vocabulary correction. Supports YouTube (native subs + Whisper API fallback), local files (WhisperX + pyannote diarization), and cloud API services (stub). |
 | `/pdf-convert` | *(deprecated)* | **Deprecated in v0.3.** Use `/convert` instead. Will be removed in v0.4. |
 
 ## What makes `convert` different
@@ -77,6 +78,7 @@ mdpowers-plugin/
 └── skills/
     ├── convert/                    # adaptive document-to-markdown (v0.3)
     ├── clip/                       # web-page-to-markdown via Defuddle
+    ├── transcribe/                 # audio/video to markdown + speaker labels + vocabulary
     └── pdf-convert/                # DEPRECATED — removed in v0.4
 ```
 

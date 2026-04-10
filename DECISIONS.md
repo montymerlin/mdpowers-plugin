@@ -6,6 +6,50 @@ Architectural decisions for the mdpowers plugin, logged in a lightweight ADR (Ar
 
 ---
 
+## Decision 006: Transcribe skill architecture — modular lib + adaptive pathways
+
+**Status:** Accepted
+**Date:** 2026-04-10
+
+**Context:** Audio/video transcription has different operational requirements across environments. Some users have local GPU capacity and prefer WhisperX + diarization for highest quality (P2); others need fast cloud-native transcription from YouTube URLs (P1); a few want to plug in custom APIs (P3 stub). A monolithic approach would either force all pathways into a single implementation (code bloat, feature conflict) or require users to choose between separate skills (/yt-transcribe, /local-transcribe) that duplicate reference material and decision-making. The transcribe skill was originally authored as a monolith in montymerlinHQ/tools/ and needed decomposition to fit the mdpowers plugin's modular conventions.
+
+Vocabulary correction is a secondary cross-cutting concern: users accumulate domain-specific terms as they transcribe, and those terms should inform future transcriptions. The vocabulary system needed to be pluggable per pathway while keeping user vocabulary lists persistent and user-manageable.
+
+**Decision:** Decomposed transcribe into a three-pathway architecture:
+
+1. **P1 — YouTube fast:** native YouTube captions when available + Whisper API fallback. No local tools needed. Pathway-specific runner delegates to external services (YouTube, OpenAI).
+2. **P2 — WhisperX local:** WhisperX + pyannote for diarization + speaker identification. Requires local installation and GPU/beefy CPU. Pathway-specific runner orchestrates the local tools.
+3. **P3 — Cloud API service (stub):** placeholder for custom transcription APIs. Stub documents the contract; real implementations added on-demand.
+
+All three pathways:
+- Share core library modules (vocabulary cascade, speaker labeling, output formatting, quality checks)
+- Use adaptive pathway selection: probe available tools at runtime, pick the best fit, allow explicit override with reasoning
+- Respect XDG conventions for configuration and cached models (`$XDG_CONFIG_HOME/mdpowers/transcribe/`, `$XDG_CACHE_HOME/mdpowers/`)
+- Emit host-mode metadata on each transcription so the skill can detect mismatches (e.g. P2 was selected on a host without local GPU)
+
+Vocabulary system:
+- Core lists in `skills/transcribe/references/vocabulary/standard/` (curated, version-controlled)
+- User lists in `$XDG_CONFIG_HOME/mdpowers/transcribe/vocabulary/custom/` (persistent per user, auto-promoted to standard when frequency threshold is hit)
+- Cascade logic: user custom → standard → generic fallback
+- No API keys or model credentials stored in the skill; P1 requires upstream authentication (OpenAI API key in environment), P2 requires local models pre-downloaded
+
+**Consequences:**
+- Transcribe skill is now ~4400 lines across 15 files, significantly more code than a monolithic approach, but most bulk is library modules that future skills can reuse (speaker labeling, vocabulary cascade, quality checks)
+- Pathway selection is adaptive by default, but transparent to the user (narrated in output) and overridable with explicit reasoning
+- Vocabulary lists are user-managed and persistent, reducing friction for domain specialists
+- Host-mode detection adds ~200 lines but enables the skill to run on any Agent SDK host without hardcoded paths
+- Breaking change for anyone porting from montymerlinHQ/tools/transcribe — pathway selection is now automatic (P1 if P2 unavailable), not manual
+- The P3 stub is extensible but requires per-implementation work; no built-in SaaS transcription services pre-configured
+
+**Alternatives Considered:**
+
+- **Monolithic single-pathway** — simplest, smallest code, but forces users into one operational model and requires separate skills for alternate pathways. Rejected as operationally inflexible.
+- **Separate skills per pathway** (`/transcribe-youtube`, `/transcribe-local`, `/transcribe-api`) — maximum modularity and clarity, but duplicates reference material, vocabulary lists, and decision points across three skill artifacts. Users would have to learn three entry points and maintain three sets of docs.
+- **Configuration file approach** (transcribe-config.yaml with pathway choice pre-set) — avoids runtime probing, but introduces persistent config that can go stale (e.g. "P2 is set but this host has no GPU") and requires users to think ahead instead of letting the skill adapt.
+- **Inline adaptive logic (no modularity)** — smallest code, monolithic, but violates the plugin's modular philosophy and makes future pathway additions (P4: streaming, P5: custom models) harder to author and harder to test in isolation.
+
+---
+
 ## Decision 001: Adopted agentic scaffold
 
 **Status:** Accepted
