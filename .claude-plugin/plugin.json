@@ -1,6 +1,6 @@
 {
   "name": "mdpowers",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Markdown superpowers for knowledge gardens. Adaptive document-to-markdown conversion (PDF, docx, pptx, epub, html, image) and web clipping (Defuddle), optimised for AI-readable output. Host-agnostic — runs in Claude Code, Cursor, the desktop app, and Cowork.",
   "author": {
     "name": "Monty Merlin"
