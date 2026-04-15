@@ -110,3 +110,33 @@ Example: "How Regen Network's ecocredits work" becomes `2026-04-07_How-Regen-Net
 | Garbled title or author | Bad page metadata | Clip anyway, suggest editing the frontmatter |
 | Timeout after 30s | Slow or unresponsive server | Retry once, then report failure |
 | Network error | Sandbox network restrictions | Check if the domain is reachable with `curl -I <url>` |
+| **403 Forbidden (e.g. Medium)** | Paywall / bot-blocking | See Wayback Machine fallback below |
+| **410 Gone / DNS fail** | Page permanently removed | Mark index entry `[!]`, note date; do not retry |
+
+## Wayback Machine fallback (for 403-blocked sources)
+
+Some publishers (notably Medium) block defuddle with a 403. Don't retry the live URL — go straight to the Wayback Machine.
+
+**Step 1 — Check availability:**
+```bash
+curl -s "https://archive.org/wayback/available?url={full-url-without-scheme}"
+# e.g. medium.com/ethichub/my-article-slug-abc123
+```
+
+If `archived_snapshots.closest` exists and `status: "200"`, a snapshot is available.
+
+**Step 2 — Clip the snapshot:**
+```bash
+defuddle parse --markdown "{wayback_url}"
+# e.g. https://web.archive.org/web/20191113012339/https://medium.com/ethichub/my-article-slug
+```
+
+**Step 3 — Update frontmatter:**
+Add the Wayback URL alongside the original:
+```yaml
+source_url: "https://medium.com/ethichub/original-slug"
+wayback_url: "https://web.archive.org/web/20191113012339/https://medium.com/ethichub/original-slug"
+captured_method: "mdpowers:clip (Wayback Machine snapshot YYYY-MM-DD)"
+```
+
+**If no snapshot exists:** set `capture_failed: true` and `capture_notes: "No Wayback snapshot available as of {date}. Content is WebFetch summary only — do not cite directly."` Update the index entry status to `[?]`. Do not fabricate content.

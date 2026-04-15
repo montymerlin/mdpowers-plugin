@@ -6,6 +6,37 @@ Architectural decisions for the mdpowers plugin, logged in a lightweight ADR (Ar
 
 ---
 
+## Decision 007: Host routing — recommend Claude Code for complex jobs
+
+**Status:** Accepted
+**Date:** 2026-04-15
+
+**Context:** In practice, the convert and transcribe skills perform significantly better in Claude Code than in Co-Work. The difference isn't subtle: in Co-Work, complex jobs (OCR PDFs, large documents, batch conversions, any transcription) either fail silently, degrade to lowest-quality fallbacks, or hit sandbox timeouts. The skills' graceful degradation logic was originally designed for tool-not-installed scenarios, not for the broader constraint profile of a low-RAM, no-install, short-timeout sandbox. Users running complex jobs in Co-Work were getting poor results with no clear explanation of why or what to do about it.
+
+The specific trigger was an EthicHub research pass where a 30-page scanned PDF (60 Decibels impact assessment) required OCR. In Co-Work: pypdf extracted only bullet symbols, docling/tesseract unavailable, no brew/pip, conversion produced a near-empty stub. In Claude Code: `brew install poppler tesseract` ran in seconds, pdftoppm + tesseract extracted all 30 pages, full structured markdown produced in one pass.
+
+**Decision:** Add a host routing check to Phase 1 of the convert skill and the transcription Probe phase. The check:
+1. Detects whether the current host is Co-Work or a constrained environment (RAM < 5GB, path contains `/sessions/`, no package manager access)
+2. Classifies the job as simple (fine anywhere) or complex (prefers Claude Code)
+3. If constrained host + complex job: surfaces a routing recommendation with the exact Claude Code command to use
+4. Always lets the user override and proceed anyway — never blocks
+
+The routing logic lives in `skills/convert/references/environments.md` ("Host routing check" section) so both convert and transcribe reference the same definition without duplication.
+
+**Consequences:**
+- Users get an early, actionable explanation rather than a silent degraded output they don't understand
+- The recommendation includes the exact command (`cd {project} && claude "Convert {filename}..."`) so the friction of switching is minimal
+- Convert and transcribe skills share the routing logic via a reference, not inline copies
+- The check adds ~5 lines of narration to Probe output for complex jobs — trivial overhead
+- Users who want to proceed in Co-Work anyway can — the gate is advisory, not a hard block
+
+**Alternatives Considered:**
+- **Auto-degrade silently** — current behaviour, rejected because it produces poor output with no user visibility into why or how to get better results
+- **Hard block in Co-Work** — rejected because sometimes a degraded output is better than nothing, and the user should have the final say
+- **Separate Co-Work-specific skill versions** — rejected as maintenance overhead; one skill with adaptive routing is cleaner
+
+---
+
 ## Decision 006: Transcribe skill architecture — modular lib + adaptive pathways
 
 **Status:** Accepted

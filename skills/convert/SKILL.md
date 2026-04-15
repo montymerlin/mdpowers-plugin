@@ -65,6 +65,8 @@ Probe runs two parallel detections:
 
 **(b) Environment capabilities.** Detect what tools are actually available: RAM, disk, installed tools (docling, marker, pandoc, pymupdf, calibre, tesseract, rapidocr), installed Python packages, network access, and which built-in Anthropic skills can be delegated to (`pdf`, `docx`, `pptx`, `xlsx`).
 
+**(c) Host routing check.** After detecting the environment, classify the job as simple or complex and check whether the current host can handle it well. See the full routing logic in `references/environments.md` under "Host routing check". If the job is complex and the host is Co-Work or constrained, surface a routing recommendation to the user before proceeding to Plan.
+
 Output: a short profile you carry into Plan. Example:
 ```
 Source: 25-page PDF, widescreen, image-heavy, 0.3 text-image ratio — likely slide deck

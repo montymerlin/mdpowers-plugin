@@ -164,6 +164,24 @@ Three strategies in order of preference:
 
 3. **Flag for review** — if a required field is unknown AND the document is important enough to warrant human follow-up, add `needs_review: true` to the frontmatter.
 
+## Capture provenance fields (clip / web-sourced documents)
+
+When the source is a web page (clipped via mdpowers:clip) rather than a local file, replace `source_file` with `source_url` and add these optional fields to document capture provenance. Used when the source may be behind a paywall, archived, or only partially captured.
+
+```yaml
+source_url: "https://original.url/article"        # the canonical URL
+wayback_url: "https://web.archive.org/..."        # set if captured from Wayback Machine
+captured_method: "mdpowers:clip"                  # or "mdpowers:clip (Wayback Machine snapshot YYYY-MM-DD)"
+capture_failed: true                              # set if full capture was not possible
+capture_notes: "..."                              # explains what failed and what to do about it
+```
+
+**When to set `capture_failed: true`:** when the content is a fallback summary (e.g. WebFetch used because defuddle returned 403 and no Wayback snapshot exists). The file is kept as a stub — useful for reference — but agents should not cite it directly.
+
+**When to set `wayback_url`:** whenever a Wayback Machine snapshot was used instead of the live URL. Preserves provenance so future agents know which snapshot was the source.
+
+These fields are not required by any recipe but are enforced by convention in research commons workflows. If working in a directory with `CLAUDE.md` that references a sources-index or clipping workflow, these fields are expected on every web-sourced capture.
+
 ## Anti-patterns
 
 - **Inventing fields not in the recipe's spec.** Don't add `author_email` or `version` or `pagination` unless the recipe defines them.

@@ -36,6 +36,24 @@ Run `scripts/probe.py` (or invoke its logic directly). Probe does three things i
 
 **(b) Environment detection.** Check what's installed: yt-dlp, ffmpeg/ffprobe, whisperx, pyannote, torch (and device: CUDA, MPS, CPU), OpenAI API key. Detect host mode (local vs sandbox) using `lib/host_mode.py`.
 
+**Host routing check (always run for transcription):** Transcription is always a complex job — it requires ffmpeg, long-running processes, and often pip-installed models. If running in Co-Work or a constrained sandbox (RAM < 5GB, no pip/brew, path contains `/sessions/`), surface this recommendation before Route:
+
+```
+⚠️  Transcription runs best in Claude Code.
+
+Reason: transcription requires ffmpeg, long-running Whisper processes, and sometimes
+local model downloads — all of which are constrained or unavailable in Co-Work.
+
+To run in Claude Code:
+  1. Open a terminal and cd to your project
+  2. Run: claude
+  3. Ask: "Transcribe [filename or URL] using mdpowers:transcribe"
+
+Proceed anyway in this environment? (y/n)
+```
+
+If the user says yes, proceed — don't block. P1 (YouTube captions) is the most likely to succeed in a constrained environment; P2 (local WhisperX) will almost certainly fail.
+
 **(c) Vocabulary detection.** Walk the discovery cascade (see `references/playbooks/vocabulary-handling.md`): `$MDPOWERS_VOCAB` → XDG master → workspace `.mdpowers/vocabulary.*.json` overlays → merge. Report what was found and loaded.
 
 Output: a short profile carried into Route. Example:

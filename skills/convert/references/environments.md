@@ -149,6 +149,66 @@ Two situations where Probe should stop and escalate immediately rather than degr
 
 These are the only two loud-failure cases. Everything else — suboptimal quality, missing enrichment because the engine doesn't support a feature, partial extraction — gets a `quality: degraded` flag and proceeds.
 
+## Host routing check
+
+Run this check at the end of Probe, **before** moving to Plan. It is a pre-flight check, not a failure — the goal is to route the user to a better environment when the job warrants it, not to block them.
+
+### Detecting the host
+
+```
+Co-Work sandbox (constrained):
+  - Working path contains /sessions/ AND .remote-plugins/ structure
+  - OR env var CLAUDE_COWORK_SESSION is set
+  - OR RAM < 5 GB (proxy for sandbox — constrained containers and Co-Work both hit this)
+
+Claude Code (capable):
+  - env var CLAUDE_CODE_VERSION is set
+  - OR path does not contain /sessions/
+  - When in doubt, probe RAM and tool availability — they tell you more than the label
+```
+
+### Classifying job complexity
+
+**Simple job** (fine in any host):
+- Single PDF with a text layer (pypdf extracts >500 chars/page on average)
+- docx or pptx file ≤ 30 pages
+- Single short HTML or web clip
+
+**Complex job** (prefers Claude Code):
+- PDF with no text layer (image-based / scanned) — requires OCR tool install
+- PDF > 20 pages that needs layout analysis (docling/marker)
+- Batch conversion (multiple files)
+- Any job where the best engine requires `pip install` or `brew install`
+- Any transcription (always complex — see transcribe skill)
+
+### What to do
+
+| Host | Job complexity | Action |
+|---|---|---|
+| Claude Code | Any | Proceed normally |
+| Co-Work | Simple | Proceed normally |
+| Co-Work | Complex | Surface routing recommendation (below), then ask whether to proceed anyway or switch |
+| Unknown | Complex | Surface routing recommendation — user can decide |
+
+**Routing recommendation message (use verbatim or adapt):**
+
+```
+⚠️  This is a complex conversion job that runs best in Claude Code.
+
+Reason: [image-based PDF requiring OCR / large document needing docling / batch job]
+Current environment: Co-Work sandbox — limited RAM, no brew/pip install, shorter timeouts.
+
+To run this in Claude Code:
+  1. Open a terminal
+  2. cd to your project directory
+  3. Run: claude
+  4. Then ask: "Convert [filename] using mdpowers:convert"
+
+Alternatively, I can attempt the conversion here with degraded quality. Proceed anyway? (y/n)
+```
+
+If the user says yes, proceed with `quality: degraded` in frontmatter and a note explaining the environment constraint. Never block silently — the user always has the final say.
+
 ## Probe output example
 
 ```
