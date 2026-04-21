@@ -68,6 +68,14 @@ mdpowers-plugin/
 - **Playbooks:** numbered `P1-*.md`, `P2-*.md`, etc. for easy cross-reference from recipes
 - **Branches:** `feature/<short>`, `fix/<short>`, version branches like `v0.3-convert-skill`
 
+### Versioning
+
+- **Single source of truth:** `.claude-plugin/plugin.json` `version` field is the canonical version. Everything else references it.
+- **Semver:** patch for skill tweaks and bug fixes, minor for new skills or significant feature additions, major for methodology overhauls or breaking changes.
+- **Git tags on release:** Every version bump commit must be tagged (`git tag v0.4.2`). Tags are immutable anchors — commit messages mentioning versions without tags create the illusion of versioning without the mechanism.
+- **Version-check before committing a bump:** Verify that `plugin.json` version, the latest CHANGELOG.md heading, and the commit message all agree. If they don't, fix them before committing. This is the most common source of version drift.
+- **CHANGELOG headings name the version they describe** (e.g., `## 2026-04-15 — v0.4.2: ...`). The version in the heading must match what plugin.json says at that point in the commit history.
+
 ### Commits
 
 - Concise message focusing on "why" not "what"

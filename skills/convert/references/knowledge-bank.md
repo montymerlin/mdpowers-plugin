@@ -29,7 +29,7 @@ Always use `--image-export-mode referenced` to extract images as separate PNGs r
 - **Impact:** 5-10x file size reduction. Essential for search indexing (QMD would tokenize the base64 strings wastefully).
 
 ### 2. Nested Image Output Paths
-- **Problem:** Docling creates deeply nested `_artifacts/` directories mirroring the full input path (e.g. `projects/bridging-worlds/reference/md/projects/bridging-worlds/...`).
+- **Problem:** Docling creates deeply nested `_artifacts/` directories mirroring the full input path (e.g. `projects/<project>/reference/md/projects/<project>/...`).
 - **Fix:** Post-processor moves images to a flat `images/` folder with shortened, clean filenames and updates markdown references to relative paths.
 
 ### 3. Two-Column Academic Paper Layout → Table

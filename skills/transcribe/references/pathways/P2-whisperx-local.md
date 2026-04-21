@@ -111,6 +111,70 @@ Unlike P1, P2 performs **all** enrichment steps:
 
 ## Failure Modes & Handling
 
+### PyTorch 2.6 `weights_only` Incompatibility
+
+**Symptom:** `_pickle.UnpicklingError: Weights only load failed... GLOBAL omegaconf.listconfig.ListConfig was not an allowed global` when loading pyannote VAD or segmentation checkpoints.
+
+**Root cause:** PyTorch 2.6 changed `torch.load` to default `weights_only=True`. This breaks older pyannote/omegaconf model checkpoints that serialised non-Tensor Python objects. **Two patches are required** — applying only one still fails.
+
+**Fix (apply both before importing whisperx or pyannote):**
+
+```python
+# Patch 1: register omegaconf types as safe globals (PyTorch 2.6+)
+try:
+    import torch
+    import omegaconf.listconfig
+    import omegaconf.dictconfig
+    torch.serialization.add_safe_globals([
+        omegaconf.listconfig.ListConfig,
+        omegaconf.dictconfig.DictConfig,
+    ])
+except Exception as e:
+    print(f"[patch] safe_globals failed (non-fatal): {e}", file=sys.stderr)
+
+# Patch 2: force weights_only=False inside lightning_fabric's checkpoint loader
+try:
+    from lightning_fabric.utilities import cloud_io as _lf_io
+    import torch as _t
+    def _patched_lf_load(path_or_url, map_location=None, **kwargs):
+        kwargs["weights_only"] = False
+        return _t.load(path_or_url, map_location=map_location, **kwargs)
+    _lf_io._load = _patched_lf_load
+except Exception as e:
+    print(f"[patch] lightning_fabric patch failed (non-fatal): {e}", file=sys.stderr)
+```
+
+These patches must be applied **before** `import whisperx` or any pyannote import.
+
+**Also see:** `scripts/whisperx_local.py` — both patches are applied in the `_apply_torch_compat_patches()` function at the top of the runner.
+
+**Discovery context:** Encountered 2026-04-15 on Python 3.9 + PyTorch 2.6 + pyannote.audio 3.3 on macOS. Patch 1 alone was insufficient; Patch 2 (lightning_fabric) was the missing piece. The `whisperx_patched.py` workaround file in `/tmp` was the minimum reproducible test case that confirmed both patches together work.
+
+---
+
+### Buzzsprout / Signed CDN Audio Download Fails
+
+**Symptom:** `curl https://www.buzzsprout.com/.../.mp3` returns a 4.4KB HTML page instead of audio. Or: downloading the redirect URL directly returns a 403 or partial file.
+
+**Root cause:** Buzzsprout serves podcast MP3s via signed CloudFront CDN URLs that expire within seconds. A two-step approach (get redirect URL → download separately) fails because the signed URL has already expired by the time the second request fires. The CDN also checks `User-Agent` and `Referer` headers.
+
+**Fix:** Use a single `curl -L` that follows all redirects in one command, with browser-mimicking headers:
+
+```bash
+curl -L \
+  -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" \
+  -H "Referer: https://www.buzzsprout.com/" \
+  -H "Accept: audio/mpeg, audio/*, */*" \
+  -o output.mp3 \
+  "https://www.buzzsprout.com/SHOW_ID/EPISODE_ID.mp3"
+```
+
+The `-L` flag follows all redirects. The headers prevent CDN bot-detection. The full signed URL chain is followed in one TCP session before the signature window closes.
+
+**This pattern applies broadly** to any podcast CDN that uses signed URLs (Anchor.fm/Spotify RSS, Buzzsprout, SoundOn, etc.). If a direct CDN URL doesn't work, obtain the enclosure URL from the RSS feed rather than the episode page — RSS enclosure URLs are the canonical stable form.
+
+---
+
 ### WhisperX Not Installed or Import Fails
 
 **Symptom:** `ModuleNotFoundError: No module named 'whisperx'` or version mismatch.

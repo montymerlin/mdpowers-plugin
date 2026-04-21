@@ -18,6 +18,7 @@ Transcribes audio and video sources into structured markdown with YAML frontmatt
 - User asks for speaker identification, diarization, or "who said what"
 - User wants vocabulary-corrected transcripts (domain-specific terms, proper nouns)
 - User wants to transcribe a batch (playlist, folder of files, season of episodes)
+- User provides a podcast URL (Spotify, Apple Podcasts, Buzzsprout, or any podcast platform) — use P4 to resolve audio first
 
 ## The four phases
 
@@ -60,7 +61,7 @@ Output: a short profile carried into Route. Example:
 ```
 Source: YouTube video "ReFi Podcast Ep. 42" (47:23, manual subs available)
 Environment: local mode, yt-dlp ✓, whisperx ✓ (CPU), pyannote ✓ (MPS), OPENAI_API_KEY ✓
-Vocabulary: master (142 terms) + overlay bridging-worlds (23 terms) = 165 active terms
+Vocabulary: master (142 terms) + overlay <project-name> (23 terms) = 165 active terms
 ```
 
 ## Phase 2 — Route
@@ -76,6 +77,7 @@ Choose a pathway based on the probe results. Three pathways exist:
 | YouTube URL + user wants diarization | **P2** | Needs local pipeline |
 | Local audio file + whisperx installed | **P2** | Full local pipeline |
 | Local audio file + no whisperx | **P1** (Whisper API) | Graceful degradation |
+| Podcast URL (Spotify, Apple Podcasts, Buzzsprout) | **P4** | Discover RSS → audio → P2/P3 |
 | User explicitly requests an API service | **P3** | Stub — not yet implemented |
 | Sandbox mode + P2 requested | **Script emission** | Can't run locally in sandbox |
 
@@ -99,6 +101,7 @@ Execute the chosen pathway. Each pathway has a detailed reference file:
 - **P1 — YouTube Fast:** `references/pathways/P1-youtube-fast.md`, runner: `scripts/yt_fast.py`
 - **P2 — WhisperX Local:** `references/pathways/P2-whisperx-local.md`, runner: `scripts/whisperx_local.py`
 - **P3 — API Service:** `references/pathways/P3-api-service.md`, runner: `scripts/api_service.py` (stub)
+- **P4 — Podcast RSS:** `references/pathways/P4-podcast-rss.md`, no dedicated runner yet (delegates to P2/P3 after audio resolution)
 
 ### What each pathway produces
 
@@ -125,6 +128,13 @@ Execute the chosen pathway. Each pathway has a detailed reference file:
 - Not yet implemented (v0.2 target)
 - Will support AssemblyAI, Deepgram, Rev.ai
 - Currently raises `NotYetImplemented` with guidance
+
+**P4 (Podcast RSS):**
+- Resolves Spotify, Apple Podcasts, Buzzsprout, and other podcast platform URLs to a direct audio enclosure via RSS/Podcast Index API
+- Checks for existing transcripts (podcast:transcript tag, Taddy, Apple Podcasts API) before downloading audio
+- Downloads the audio file (handling signed CDN URLs like Buzzsprout/CloudFront with browser headers)
+- Delegates to P2 (local) or P3 (API) for transcription once audio is resolved
+- See `references/pathways/P4-podcast-rss.md` for full workflow
 
 ### Graceful degradation
 
@@ -204,6 +214,7 @@ If you detect a `CLAUDE.md` in the working tree, read it and honour any conventi
 - `references/pathways/P1-youtube-fast.md` — YouTube fast pathway (10 steps)
 - `references/pathways/P2-whisperx-local.md` — WhisperX local pathway (18 steps, checkpointed)
 - `references/pathways/P3-api-service.md` — API service stub (v0.2 plan)
+- `references/pathways/P4-podcast-rss.md` — Podcast RSS resolution pathway (discover → check → download → delegate)
 - `references/playbooks/vocabulary-handling.md` — vocabulary discovery, priming, correction, promotion
 - `references/playbooks/speaker-identification.md` — three-stage speaker flow
 - `references/playbooks/output-format.md` — frontmatter contract, markdown shapes, filename conventions

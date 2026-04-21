@@ -83,7 +83,7 @@ Alt text is a short label. Semantic description (P4) is where the full explanati
 
 ```markdown
 ![Slide 9](./kwaxala-overview-2026-slides/slide-09.jpg)   ✓
-![Slide 9](/Users/monty/bridging-worlds/slides/slide-09.jpg)   ✗
+![Slide 9](/Users/someone/some-project/slides/slide-09.jpg)   ✗
 ```
 
 The path is relative to the markdown file's location. Don't use `../` unless absolutely necessary.

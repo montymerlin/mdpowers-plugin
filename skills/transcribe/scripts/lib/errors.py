@@ -5,6 +5,8 @@ callers to catch broadly or narrowly as needed. Runners catch at the
 top level; lib modules raise specific subclasses.
 """
 
+from typing import Optional
+
 
 class TranscribeError(Exception):
     """Base exception for all transcribe skill errors."""
@@ -25,7 +27,7 @@ class VocabularyError(TranscribeError):
     promotion conflict that needs user resolution.
     """
 
-    def __init__(self, message: str, conflict_payload: dict | None = None):
+    def __init__(self, message: str, conflict_payload: Optional[dict] = None):
         super().__init__(message)
         self.conflict_payload = conflict_payload
 

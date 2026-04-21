@@ -313,11 +313,15 @@ def run(
 
     # Step 4: Load vocabulary and apply correction
     logger.info("Loading vocabulary and applying corrections...")
+    all_corrections: list[tuple[str, str]] = []
     try:
-        vocab = vocabulary.load_vocabulary(overlay_path=vocab_overlay)
+        vocab, _vocab_meta = vocabulary.load_vocabulary(overlay_path=vocab_overlay)
         for segment in segments:
             if isinstance(segment, dict) and "text" in segment:
-                segment["text"] = vocabulary.apply_vocabulary(segment["text"], vocab)
+                segment["text"], seg_corrections = vocabulary.apply_vocabulary(
+                    segment["text"], vocab
+                )
+                all_corrections.extend(seg_corrections)
     except errors.VocabularyError as e:
         logger.warning(f"Vocabulary loading failed: {e}")
         vocab = {}
@@ -367,7 +371,8 @@ def run(
         frontmatter=frontmatter,
         segments=segments,
         summary=summary,
-        vocab_review=vocab_review
+        vocab_review=vocab_review,
+        corrections=all_corrections,
     )
 
     # Step 9: Resolve output path and handle conflicts

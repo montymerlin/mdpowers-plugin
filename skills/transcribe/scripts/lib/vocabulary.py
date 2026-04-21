@@ -234,13 +234,17 @@ def load_vocabulary(
 # ---------------------------------------------------------------------------
 
 
-def apply_vocabulary(text: str, vocab: dict[str, list[str]]) -> str:
+def apply_vocabulary(
+    text: str, vocab: dict[str, list[str]]
+) -> tuple[str, list[tuple[str, str]]]:
     """Post-correct transcript using vocabulary via substring replacement.
 
     Strategy:
     - Find all vocabulary entries in text (longer variants first to avoid partial matches)
     - Use word boundaries (\\b) for case-insensitive matching
     - Preserve original case on replacement via reversed finditer
+    - Only log corrections where the matched text differs from the canonical form
+      (filters no-ops where whisperx already got it right)
 
     Args:
         text: Transcript text to correct.
@@ -248,10 +252,14 @@ def apply_vocabulary(text: str, vocab: dict[str, list[str]]) -> str:
                values are lists of canonical forms.
 
     Returns:
-        Corrected text.
+        Tuple of (corrected_text, corrections) where corrections is a list of
+        (matched_text, canonical_form) tuples for genuine changes only.
+        No-op replacements (matched == canonical) are excluded.
     """
     if not vocab or not text:
-        return text
+        return text, []
+
+    corrections: list[tuple[str, str]] = []
 
     # Sort by length descending to handle longer variants first
     sorted_keys = sorted(vocab.keys(), key=len, reverse=True)
@@ -286,9 +294,12 @@ def apply_vocabulary(text: str, vocab: dict[str, list[str]]) -> str:
                 # (it should be in its proper form from the vocabulary)
                 replacement = canonical
 
-            text = text[:start] + replacement + text[end:]
+            # Only record and apply if something actually changed
+            if original_text != replacement:
+                corrections.append((original_text, replacement))
+                text = text[:start] + replacement + text[end:]
 
-    return text
+    return text, corrections
 
 
 def build_whisper_prompt(

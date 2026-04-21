@@ -6,6 +6,69 @@ Architectural decisions for the mdpowers plugin, logged in a lightweight ADR (Ar
 
 ---
 
+## Decision 010: Version reconciliation and versioning convention
+
+**Status:** Accepted
+**Date:** 2026-04-21
+
+**Context:** plugin.json said `0.3.2` while CHANGELOG.md tracked versions up to `v0.4.2` and git commit messages referenced `v0.4.1`, `v0.4`, `v0.3.2`, and `v0.3.1` — with no git tags anywhere. The cause: after the v0.4 series of changes (transcribe skill, pdf-convert removal, OA cascade, host routing), a namespace-prefix commit rolled plugin.json back to `0.3.2` without reconciling with the CHANGELOG. The result was four conflicting sources of version truth (plugin.json, CHANGELOG headings, commit messages, git tags) with no anchoring mechanism.
+
+**Decision:** Three changes:
+
+1. **Reconcile now:** bump plugin.json to `0.4.2` to match the CHANGELOG's latest entry, which accurately describes the current state of the plugin (transcribe skill present, pdf-convert removed, OA cascade + host routing + namespace prefix all in place).
+2. **Establish convention:** add a Versioning section to CLAUDE.md that names plugin.json as the single source of truth, requires git tags on every version bump commit, and adds a pre-commit version-check (plugin.json version = latest CHANGELOG heading = commit message).
+3. **Update ROADMAP:** replace stale "Publish v0.3.1 to GitHub" with "Tag and publish v0.4.2" — the first properly tagged release.
+
+**Consequences:**
+- Version is now consistent across all four sources
+- Future drift is caught by the pre-commit check convention
+- Git tags (once pushed) provide immutable anchors that survive rebases and commit message edits
+- The convention adds one verification step to the release process — trivial overhead for significant clarity
+
+**Alternatives Considered:**
+- *Reset to v0.3.2 everywhere* — would require rewriting CHANGELOG to erase the v0.4 series, which accurately documents real changes. Rejected as revisionist.
+- *Jump to v0.5.0* — would mark a clean break but misrepresents the scope of this change (it's a bookkeeping fix, not a feature release).
+- *Add an automated version-check hook* — possible via a git pre-commit hook, but premature for a plugin with one contributor. The convention in CLAUDE.md is sufficient for now.
+
+---
+
+## Decision 009: P4 Podcast RSS as a pre-flight resolution pathway for podcast platform URLs
+
+**Status:** Accepted
+**Date:** 2026-04-15
+
+**Context:** During the EthicHub transcription session, four podcast appearances by EthicHub founders were targeted for transcription. All four had platform-specific distribution challenges: one was Spotify-only with a dead hosting page, one was on a Buzzsprout CDN that reliably returned HTML instead of audio, and two others were on podcast platforms that required UI authentication to access episode pages. Standard approaches (yt-dlp, WebFetch on episode page, curl on page-scraped URL) all failed.
+
+The session discovered the underlying pattern: **podcast platforms are essentially UIs on top of RSS**. Every public podcast has an RSS feed; every episode has an `<enclosure>` element with a direct audio URL. The Podcast Index API (open, free) and Apple Podcasts Lookup API (unrestricted) return RSS feeds for nearly any show. Once the RSS feed is obtained, the audio enclosure URL is a plain HTTP URL requiring no authentication — typically.
+
+**The Buzzsprout exception:** Buzzsprout and some other CDNs use signed CloudFront URLs that expire within seconds. A naive two-step approach (get redirect URL → download separately) fails because the URL expires between the two requests. The fix: `curl -L` with browser-mimicking headers in a single command that follows all redirects before signature expiry. This pattern generalises to any podcast CDN using ephemeral signed URLs.
+
+**Transcript checking first:** For ~20–30% of popular English-language podcasts, a transcript already exists — either via the `podcast:transcript` tag (Podcasting 2.0), Taddy's free API, or Apple Podcasts auto-generated transcripts. Checking before downloading audio is worth the few-second overhead.
+
+**Decision:** Formalise a P4 Podcast RSS pathway with four steps:
+1. Discover RSS feed (Podcast Index API → Apple Podcasts Lookup API → known CDN patterns)
+2. Check for existing transcripts (podcast:transcript tag → Taddy → Apple Podcasts)
+3. Download audio (standard curl → signed-CDN pattern for Buzzsprout/CloudFront)
+4. Delegate to P2 (local) or P3 (API)
+
+P4 is a pre-flight resolver, not a transcription engine. It populates richer metadata than other pathways (show title, episode number, published date, speakers from RSS) for inclusion in frontmatter.
+
+Document in `references/pathways/P4-podcast-rss.md` (spec) and update SKILL.md routing table. No runner script yet — the pathway is currently executed manually; `scripts/podcast_rss.py` is a Near-term roadmap item.
+
+**Consequences:**
+- Podcast platform URLs now have a defined resolution path rather than failing with no guidance
+- Buzzsprout CDN pattern is documented so future sessions don't diagnose it from scratch
+- Transcript-first check can save 20–60+ minutes per episode for shows that publish transcripts
+- P4 spec sets clear expectations about what's not supported (Spotify DRM, authenticated-only shows)
+- SKILL.md routing table has a fifth row, slightly increasing decision surface — worth it for clarity
+
+**Alternatives Considered:**
+- **Document as a note in P2** — Captures the audio download fix but misses the broader podcast RSS pattern; P4 is the right abstraction level
+- **yt-dlp for podcast audio** — yt-dlp can download some podcast audio from certain platforms, but it's unreliable for non-YouTube sources; the RSS enclosure approach is more universal and doesn't depend on yt-dlp's per-site extractor maintenance
+- **Spotify/Apple platform-specific scrapers** — Fragile, TOS-adjacent, and unnecessary when RSS provides the same content without authentication
+
+---
+
 ## Decision 008: OA API cascade as the standard resolution path for academic paper URLs
 
 **Status:** Accepted

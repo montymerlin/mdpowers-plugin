@@ -103,6 +103,8 @@ Example: "How Regen Network's ecocredits work" becomes `2026-04-07_How-Regen-Net
 
 ## Handling Failures
 
+Before working through the table below, check `references/known-hosts.md` — if the domain is listed, skip straight to the confirmed-working method.
+
 | Symptom | Likely cause | Fix |
 |---|---|---|
 | `defuddle: command not found` | Not installed this session | Re-run the setup step |
@@ -128,14 +130,14 @@ Use the `WebFetch` tool with the original URL. If the response contains full art
 captured_method: "mdpowers:clip (WebFetch — defuddle 403)"
 ```
 
-**Caveat:** Custom Medium subdomains (e.g. `dacxi.medium.com`, `blog.ethichub.com`) still block WebFetch. If the URL is a custom subdomain or a non-Medium publisher, skip directly to Step 2.
+**Caveat:** Custom Medium subdomains (e.g. `acme.medium.com`, `blog.example.com`) still block WebFetch. If the URL is a custom subdomain or a non-Medium publisher, skip directly to Step 2.
 
 ### Step 2 — Wayback Machine snapshot
 
 If WebFetch also fails or returns thin content:
 ```bash
 curl -s "https://archive.org/wayback/available?url={full-url-without-scheme}"
-# e.g. medium.com/ethichub/my-article-slug-abc123
+# e.g. medium.com/<publication>/<article-slug>
 ```
 
 If `archived_snapshots.closest` exists and `status: "200"`, clip the snapshot:

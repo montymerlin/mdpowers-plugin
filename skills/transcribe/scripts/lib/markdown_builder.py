@@ -117,6 +117,7 @@ def build_path1_markdown(
     summary: str,
     segments: list[dict],
     frontmatter_dict: dict,
+    corrections: Optional[list[tuple[str, str]]] = None,
 ) -> str:
     """
     Build Path 1 (YouTube subtitles) markdown output.
@@ -130,6 +131,8 @@ def build_path1_markdown(
         summary: LLM-generated summary of the transcript.
         segments: List of dicts with 'start', 'end', 'text' keys.
         frontmatter_dict: Dict of frontmatter key-value pairs (passed to build_frontmatter).
+        corrections: Optional list of (matched_text, canonical_form) tuples from
+                     apply_vocabulary. Only genuine changes; no-ops already excluded.
 
     Returns:
         Complete markdown string with frontmatter, description, summary, and segments.
@@ -158,6 +161,8 @@ def build_path1_markdown(
                 timestamp = f"{hours}:{minutes}.{seconds.split('.')[1] if '.' in seconds else '00'}"
             lines.append(f"[{timestamp}] {text}")
 
+    lines.extend(_build_corrections_section(corrections))
+
     return "\n".join(lines) + "\n"
 
 
@@ -167,6 +172,7 @@ def build_path2_markdown(
     summary: str,
     segments: list[dict],
     frontmatter_dict: dict,
+    corrections: Optional[list[tuple[str, str]]] = None,
 ) -> str:
     """
     Build Path 2 (diarized) markdown output.
@@ -181,6 +187,8 @@ def build_path2_markdown(
         summary: LLM-generated summary of the transcript.
         segments: List of dicts with 'start', 'end', 'text', 'speaker' keys.
         frontmatter_dict: Dict of frontmatter key-value pairs (passed to build_frontmatter).
+        corrections: Optional list of (matched_text, canonical_form) tuples from
+                     apply_vocabulary. Only genuine changes; no-ops already excluded.
 
     Returns:
         Complete markdown string with frontmatter, description, summary, and speaker blocks.
@@ -236,7 +244,42 @@ def build_path2_markdown(
         lines.append(block_text)
         lines.append("")
 
+    lines.extend(_build_corrections_section(corrections))
+
     return "\n".join(lines) + "\n"
+
+
+def _build_corrections_section(
+    corrections: Optional[list[tuple[str, str]]], max_shown: int = 20
+) -> list[str]:
+    """Build the '## Vocabulary corrections applied' section lines.
+
+    Only lists genuine changes (matched text ≠ canonical form). No-ops are
+    excluded upstream in apply_vocabulary. Shows up to max_shown entries;
+    remainder counted.
+
+    Args:
+        corrections: List of (matched_text, canonical_form) tuples, or None.
+        max_shown: Max number of individual corrections to list.
+
+    Returns:
+        List of markdown lines (empty list if corrections is None).
+    """
+    if corrections is None:
+        return []
+
+    lines = ["", "---", "", "## Vocabulary corrections applied", ""]
+
+    if not corrections:
+        lines.append("*(none)*")
+    else:
+        shown = corrections[:max_shown]
+        for matched, canonical in shown:
+            lines.append(f"- `{matched}` → `{canonical}`")
+        if len(corrections) > max_shown:
+            lines.append(f"- *(and {len(corrections) - max_shown} more)*")
+
+    return lines
 
 
 def resolve_output_path(

@@ -20,8 +20,32 @@ from pathlib import Path
 from typing import Optional
 
 # PyTorch 2.6+ compatibility patch — must come before any torch/whisperx imports
+#
+# PyTorch 2.6 changed torch.load's default from weights_only=False to weights_only=True.
+# Older pyannote/omegaconf checkpoints include ListConfig/DictConfig objects which are
+# not in the default safe-globals allowlist, causing UnpicklingError at model load time.
+#
+# Two patches are required:
+#   1. Add omegaconf types to torch's safe_globals allowlist
+#   2. Patch lightning_fabric's _load helper to force weights_only=False (belt-and-suspenders)
+#
+# Both patches must be applied before any whisperx/pyannote import.
+# Discovered during EthicHub podcast transcription pass, April 2026.
 try:
     import torch as _torch_compat
+
+    # Patch 1: allow omegaconf types in safe globals (PyTorch 2.6+)
+    try:
+        import omegaconf.listconfig as _olc
+        import omegaconf.dictconfig as _odc
+        _torch_compat.serialization.add_safe_globals([
+            _olc.ListConfig,
+            _odc.DictConfig,
+        ])
+    except Exception:
+        pass
+
+    # Patch 2: force weights_only=False in lightning_fabric's checkpoint loader
     from lightning_fabric.utilities import cloud_io as _lf_io
 
     def _patched_lf_load(path_or_url, map_location=None, **kwargs):

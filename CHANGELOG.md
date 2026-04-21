@@ -4,6 +4,30 @@ A narrative record of how this plugin evolves. Updated after significant work se
 
 ---
 
+## 2026-04-21 — v0.4.2: version reconciliation
+
+Reconciled version drift between plugin.json (which said 0.3.2), CHANGELOG (which said v0.4.2), and git commit messages (which mentioned v0.3.1 through v0.4.1 with no tags). The cause: the v0.3.2 namespace-prefix commit rolled plugin.json back without reconciling with the CHANGELOG's v0.4 series. plugin.json now correctly reads 0.4.2, matching the CHANGELOG.
+
+Added a versioning convention to CLAUDE.md establishing plugin.json as the single source of truth, requiring git tags on every version bump, and adding a pre-commit version-check (plugin.json version = latest CHANGELOG heading = commit message). This prevents the drift pattern that caused the inconsistency. Updated ROADMAP to replace the stale "Publish v0.3.1" item with "Tag and publish v0.4.2." See Decision 010.
+
+---
+
+## 2026-04-15 — v0.4.2: podcast transcription learnings from EthicHub session
+
+A follow-on pass to the same EthicHub research session that produced v0.4.1. The clip skill was fixed in the morning; the transcription session ran in the afternoon and produced its own set of learnings.
+
+**P4 Podcast RSS pathway documented.** Four EthicHub founder podcast appearances needed transcription but had Spotify-only distribution or dead hosting page links. The solution: podcast platforms are just UIs on top of RSS. Every show has a feed; every episode has an enclosure URL; the audio is almost always publicly accessible. A new pathway — P4 (Podcast RSS) — codifies the four-step resolution flow: (1) discover RSS feed via Podcast Index API or Apple Podcasts Lookup API, (2) check for existing transcripts (`podcast:transcript` tag, Taddy, Apple Podcasts), (3) download audio (handling signed CDN patterns), (4) delegate to P2 for transcription. The full spec is in `references/pathways/P4-podcast-rss.md` and the routing table in SKILL.md.
+
+**Buzzsprout signed CDN pattern.** Direct `curl` of Buzzsprout episode URLs returns HTML instead of audio. Root cause: signed CloudFront URLs expire within seconds; a two-step download fails because the signature window closes before the second request. Fix: single `curl -L` with browser-mimicking headers (`User-Agent`, `Referer`, `Accept`) that follows all redirects in one TCP session. This pattern is documented in both P2 (failure modes) and P4 (Step 3) and generalises to any podcast CDN using ephemeral signed URLs.
+
+**PyTorch 2.6 two-patch fix.** The existing runner had Patch 2 (force `weights_only=False` in `lightning_fabric`) but lacked Patch 1 (register `omegaconf.ListConfig` / `DictConfig` as safe globals). Applying only one patch still failed. Both patches are now in `scripts/whisperx_local.py` and documented with discovery context in P2's failure modes section.
+
+**Python 3.9 `Optional[dict]` fix.** `lib/errors.py` used `dict | None` union syntax introduced in Python 3.10. The `.venv-whisperx` environment uses Python 3.9, causing the runner to fail on import. Fixed by adding `from typing import Optional` and changing `dict | None` → `Optional[dict]`. Caught because this is exactly the kind of syntax drift that breaks on older Python without a CI matrix.
+
+No breaking changes. SKILL.md routing table updated. ROADMAP.md updated with P4 runner as a Near-term item.
+
+---
+
 ## 2026-04-15 — v0.4.1: source resolution learnings from EthicHub research pass
 
 A research clipping pass for the Bridging Worlds EthicHub case study required capturing 14+ sources across a mix of Medium blog posts, academic papers (Sage, Elsevier, NBER), and grey-literature URLs. The session hit every meaningful failure mode the `clip` skill could encounter — and the learnings are now codified.
