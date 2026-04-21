@@ -1,0 +1,21 @@
+{
+  "name": "mdpowers",
+  "owner": {
+    "name": "Monty Merlin"
+  },
+  "plugins": [
+    {
+      "name": "mdpowers",
+      "source": "./",
+      "description": "Markdown superpowers for knowledge gardens — adaptive document-to-markdown conversion (PDF, docx, pptx, epub, html, image), web clipping, and transcription. Host-agnostic.",
+      "version": "0.3.2",
+      "author": {
+        "name": "Monty Merlin"
+      },
+      "repository": "https://github.com/montymerlin/mdpowers-plugin",
+      "license": "MIT",
+      "category": "productivity",
+      "tags": ["markdown", "pdf", "conversion", "web-clipper", "transcription", "knowledge-management"]
+    }
+  ]
+}
