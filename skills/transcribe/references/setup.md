@@ -153,7 +153,7 @@ If [Y]:
 ## Step 4: Host Path Capture (Sandbox Only)
 
 **What it does:**
-- Checks if user is in Cowork sandbox (skill execution environment)
+- Checks if user is in a sandboxed skill execution environment
 - If yes, captures trusted host paths for safe file I/O
 - If no (local mode), skips this step
 
@@ -161,7 +161,7 @@ If [Y]:
 ```
 Step 4: Host Path Mounting (Sandbox)
 
-If you're running this in Claude Code Cowork sandbox, I can mount
+If you're running this in a sandboxed host, I can mount
 directories from your computer for safe file access.
 
 Question: Do you want to mount a directory for transcripts?

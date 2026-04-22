@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Interactive setup wizard for the mdpowers transcribe skill.
 
-Runs in local mode (Claude Code terminal, Cursor). For sandbox mode
-(Cowork), the skill drives the same steps via chat UI — see
-references/setup-sandbox.md.
+Runs in local mode (Claude Code terminal, Codex, Cursor, or another full
+local host). For sandbox mode, the skill drives the same steps via chat UI —
+see references/setup-sandbox.md.
 
 SYNC NOTE: This file mirrors references/setup-sandbox.md.
 Changes here must be reflected there.

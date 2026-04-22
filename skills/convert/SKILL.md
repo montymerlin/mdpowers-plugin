@@ -120,13 +120,13 @@ Verify is a mechanical correctness checker, not a prose quality editor. For pros
 
 ## Commons-awareness
 
-If you detect a `CLAUDE.md` in the working tree, read it and honour any conventions it declares. Specifically watch for:
+If you detect an `AGENTS.md` or `CLAUDE.md` in the working tree, read the nearest canonical instruction file and honour any conventions it declares. Specifically watch for:
 - Filename conventions (kebab-case slugs, special cases)
 - Directory conventions (where converted files belong, asset subfolder patterns)
 - Index regeneration hooks (e.g. `python .scripts/generate_index.py`)
 - Commit policy (whether to auto-commit or show diff first)
 
-Commons-awareness is a soft detection — when it fires, **name what's being applied** at the start of your response so the user can see it ("Detected Bridging Worlds CLAUDE.md — using kebab-case slugs, placing output in research/, will remind you to regenerate INDEX.md after").
+Commons-awareness is a soft detection — when it fires, **name what's being applied** at the start of your response so the user can see it ("Detected Bridging Worlds AGENTS.md — using kebab-case slugs, placing output in research/, will remind you to regenerate INDEX.md after").
 
 ## References
 

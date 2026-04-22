@@ -24,11 +24,11 @@ Items likely to be addressed in the next development cycle.
 
 - **Cross-skill convert↔transcribe handoff** — When a user provides a video file that's encoded as MP4/WebM with audio, detect this and suggest transcribing the audio track instead of trying to convert the whole file. Conversely, when transcribing a presentation video, suggest converting the visible deck (if available separately) to structured slides. This is a "would you like to..." suggestion, not automatic. `status: idea`
 
-- **~~Remove `pdf-convert` in v0.4~~** — Done. Removed in v0.4. Knowledge bank and helper scripts migrated to `skills/convert/references/`. `status: done`
-
 - **Tag and publish v0.4.2 to GitHub** — Tag the current state (`git tag v0.4.2`) and push. This is the first properly tagged release — previous versions were tracked in CHANGELOG and commit messages but never anchored with git tags. `status: idea`
 
-- **Portability test matrix** — Verify the plugin loads and runs in at least three hosts (Claude Code, Cursor via MCP, Cowork desktop app). Document any per-host quirks in COMPATIBILITY.md. Adds a "Tested on:" badge line to the README. `status: idea`
+- **Portability test matrix** — Verify the repo works in at least four host modes: Claude plugin hosts, Codex global skills, Cursor via MCP, and constrained sandbox hosts. Document per-host quirks in COMPATIBILITY.md and add a "Tested on:" line to the README. `status: idea`
+
+- **Codex install/update hardening** — Validate the new Codex install/update scripts on a clean machine profile, confirm the default vendor path works without extra env vars, and decide whether to add a lightweight release-check that refreshes the Codex wrappers after a version bump. `status: idea`
 
 ## Future explorations
 
@@ -89,6 +89,12 @@ Items that have been evaluated. The reasoning lives in [DECISIONS.md](DECISIONS.
 - **"Guides not rails" as project-wide principle** — → Decision 003. `status: decided`
 - **Prefer built-in Anthropic skills as first-choice engines** — → Decision 004. `status: decided`
 - **Rename to `mdpowers` and decouple from Cowork branding** — → Decision 005. `status: decided`
+- **Transcribe skill architecture** — → Decision 006. `status: decided`
+- **Host routing and environment detection** — → Decision 007. `status: decided`
+- **OA API cascade for academic papers** — → Decision 008. `status: decided`
+- **P4 Podcast RSS pathway** — → Decision 009. `status: decided`
 - **Version reconciliation and versioning convention** — → Decision 010. `status: decided`
+- **Canonical repo instructions + Codex install/update support** — `AGENTS.md` is canonical, `CLAUDE.md` is a wrapper, and Codex installs via namespaced global skills backed by a vendor clone. → Decision 011. `status: decided`
+- **Remove `pdf-convert` in v0.4** — Done. Knowledge bank and helper scripts migrated to `skills/convert/references/`. `status: decided`
 
 <!-- Scaffold sources: GitHub roadmap patterns, Mozilla Science roadmapping guide, agile parking lot conventions, YAGNI principle, agentic-scaffold-plugin v0.1.0 -->

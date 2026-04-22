@@ -4,6 +4,10 @@ A narrative record of how this plugin evolves. Updated after significant work se
 
 ---
 
+## 2026-04-22 — v0.4.3: AGENTS.md canon + Codex global install path
+
+Made the repo scaffold match the portability story the skills were already trying to tell. `AGENTS.md` is now the canonical instruction file and `CLAUDE.md` has been reduced to a compatibility wrapper, which brings the repo in line with the broader compatibility-layer pattern used elsewhere in montymerlinHQ. More importantly, Codex is now treated as a first-class host rather than an afterthought: the docs explain the difference between Claude plugin packaging and Codex global skills, the skills use a portable `MDPOWERS_ROOT` resolution convention instead of assuming `${CLAUDE_PLUGIN_ROOT}`, and two new scripts (`scripts/install_codex_skills.sh`, `scripts/update_codex_skills.sh`) establish a repeatable GitHub-backed install/update flow via `~/.codex/vendor_imports/repos/mdpowers-plugin`. Current-facing skill text and compatibility docs were swept so workspace conventions prefer `AGENTS.md`, and host guidance now talks about full local terminal hosts rather than only Claude Code where the distinction matters. This is a compatibility release, not a methodology rewrite, so it lands as v0.4.3.
+
 ## 2026-04-21 — v0.4.2: version reconciliation + marketplace.json fix
 
 Fixed marketplace.json version (was still 0.3.2, now 0.4.2 to match plugin.json). Added marketplace.json to the directory structure listing in CLAUDE.md.
@@ -14,7 +18,7 @@ Added a versioning convention to CLAUDE.md establishing plugin.json as the singl
 
 ---
 
-## 2026-04-15 — v0.4.2: podcast transcription learnings from EthicHub session
+## 2026-04-15 — v0.4.1 (continued): podcast transcription learnings from EthicHub session
 
 A follow-on pass to the same EthicHub research session that produced v0.4.1. The clip skill was fixed in the morning; the transcription session ran in the afternoon and produced its own set of learnings.
 

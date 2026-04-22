@@ -60,11 +60,11 @@ Exception: semantic descriptions (P4) and prose around structured representation
 
 If the working directory is a git repository, never run `git commit` or `git add && commit` after conversion. Show the diff, let the user decide.
 
-**Why:** Bridging Worlds' CLAUDE.md explicitly forbids auto-commit, and it's a sensible default for any repo. Auto-committing generated content is how repositories get polluted.
+**Why:** Bridging Worlds' AGENTS.md explicitly forbids auto-commit, and it's a sensible default for any repo. Auto-committing generated content is how repositories get polluted.
 
 ### 10. Never skip the commons-awareness announcement
 
-If `CLAUDE.md` is detected in the working tree and commons conventions are being applied, name them at the start of your response. Don't silently reshape output based on detected conventions.
+If `AGENTS.md` or `CLAUDE.md` is detected in the working tree and commons conventions are being applied, name them at the start of your response. Don't silently reshape output based on detected conventions.
 
 **Why:** Silent reshaping surprises users. Transparency is the safety valve — the user should see why their output looks different from default.
 

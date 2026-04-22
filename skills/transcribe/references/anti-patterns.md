@@ -285,11 +285,11 @@ Never skip a priority level.
 
 ---
 
-## 10. NEVER Run Path 2 Inside Cowork Sandbox — Emit a Script Instead
+## 10. NEVER Run Path 2 Inside a Sandboxed Host — Emit a Script Instead
 
 **Anti-pattern:**
 ```
-User in Cowork sandbox requests P2 transcription.
+User in a sandboxed host requests P2 transcription.
 Skill attempts to run whisperx inside sandbox.
 Models don't exist, GPU access fails, process hangs.
 User frustrated; transcription never completes.
@@ -302,9 +302,9 @@ User frustrated; transcription never completes.
 
 **Correct behavior:**
 ```
-If in Cowork sandbox and user requests P2:
+If in a sandboxed host and user requests P2:
   Display:
-    "P2 (WhisperX local) requires significant compute and isn't available in Cowork.
+    "P2 (WhisperX local) requires significant compute and isn't available in this sandboxed host.
      
      Options:
      [1] Use P1 (YouTube fast) instead
@@ -321,7 +321,7 @@ If in Cowork sandbox and user requests P2:
 ```
 
 **Enforcement:**
-- Cowork detection at pathway selection
+- Sandbox detection at pathway selection
 - P2 check: `if in_sandbox and pathway == "P2": raise SandboxNotSupported("...generate script message...")`
 - Script generation includes all necessary error handling and progress reporting
 

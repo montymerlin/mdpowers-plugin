@@ -15,11 +15,12 @@ Clip any web page to a clean markdown file using Defuddle. Strips navigation, ad
 
 ## Setup
 
-Defuddle must be available before the first clip in a session. The install location is resolved at runtime so this works across Claude Code, Cursor, the desktop app, and Cowork without hardcoded session paths. Run this silently before the first clip — don't ask the user, just do it:
+Defuddle must be available before the first clip in a session. The install location is resolved at runtime so this works across Claude plugin hosts, Codex, Cursor, the desktop app, and sandboxed environments without hardcoded session paths. Run this silently before the first clip — don't ask the user, just do it:
 
 ```bash
 # Resolve a writable, portable install prefix (works on any host)
 MDP_NODE_PREFIX="${MDPOWERS_NODE_PREFIX:-${XDG_DATA_HOME:-$HOME/.local/share}/mdpowers/node}"
+MDPOWERS_ROOT="${MDPOWERS_ROOT:-${CLAUDE_PLUGIN_ROOT:-${CODEX_HOME:-$HOME/.codex}/vendor_imports/repos/mdpowers-plugin}}"
 mkdir -p "$MDP_NODE_PREFIX"
 export PATH="$MDP_NODE_PREFIX/bin:$PATH"
 
@@ -33,14 +34,15 @@ Verify with `defuddle --version` (expect 0.15.0+). If it fails, re-run the insta
 
 ## How to Clip
 
-The plugin bundles a Node.js script at `${CLAUDE_PLUGIN_ROOT}/skills/clip/scripts/md_defuddle.js`.
+The repo bundles a Node.js script at `${MDPOWERS_ROOT}/skills/clip/scripts/md_defuddle.js`.
 
 Re-export the PATH before running (the setup block above handles the first invocation; subsequent calls in the same session just need the PATH re-exported):
 
 ```bash
 MDP_NODE_PREFIX="${MDPOWERS_NODE_PREFIX:-${XDG_DATA_HOME:-$HOME/.local/share}/mdpowers/node}"
+MDPOWERS_ROOT="${MDPOWERS_ROOT:-${CLAUDE_PLUGIN_ROOT:-${CODEX_HOME:-$HOME/.codex}/vendor_imports/repos/mdpowers-plugin}}"
 export PATH="$MDP_NODE_PREFIX/bin:$PATH"
-node "${CLAUDE_PLUGIN_ROOT}/skills/clip/scripts/md_defuddle.js" <url> [output_path]
+node "${MDPOWERS_ROOT}/skills/clip/scripts/md_defuddle.js" <url> [output_path]
 ```
 
 Without an output path, the script prints to stdout (useful for previewing). With a path, it writes the file and confirms.
@@ -82,7 +84,7 @@ If the user specifies a destination, use it. Otherwise, choose based on context:
 | Reference for a specific project | `projects/<project>/references/YYYY-MM-DD_Title.md` |
 | Quick capture, unsure where it belongs | `ops/inbox/YYYY-MM-DD_Title.md` |
 
-All paths are relative to the user's workspace root. If the workspace has a different convention (check `CLAUDE.md` or `README.md` at the workspace root), follow that instead.
+All paths are relative to the user's workspace root. If the workspace has a different convention (check `AGENTS.md`, `CLAUDE.md`, or `README.md` at the workspace root), follow that instead.
 
 ## Deriving Filenames
 

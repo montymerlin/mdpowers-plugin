@@ -75,8 +75,8 @@ Each recipe declares an ordered preference list. Probe picks the highest-prefere
 **Quality order (best → worst):**
 
 1. **Built-in Anthropic `pdf` skill** — always first choice when available. Maintained by the people who trained the model. Handles layout, figures, tables, OCR, citations. Availability varies by host — probe first.
-2. **marker** — heavy ML extractor; best quality for academic papers and complex layouts. Needs GPU or beefy CPU — typically only viable in unconstrained Claude Code environments.
-3. **docling** — IBM's tool; good quality but memory-hungry. Requires RAM ≥6GB. OOMs reliably in low-RAM sandboxes (Cowork, small CI runners).
+2. **marker** — heavy ML extractor; best quality for academic papers and complex layouts. Needs GPU or beefy CPU — typically only viable in unconstrained local terminal hosts.
+3. **docling** — IBM's tool; good quality but memory-hungry. Requires RAM ≥6GB. OOMs reliably in low-RAM sandboxes and small CI runners.
 4. **pymupdf + post-processing** — universal fallback. Works in any environment with Python. Produces decent text extraction without layout analysis.
 5. **pdftotext + pandoc** — last resort. Lowest quality but very fast and available almost everywhere.
 
@@ -156,15 +156,15 @@ Run this check at the end of Probe, **before** moving to Plan. It is a pre-fligh
 ### Detecting the host
 
 ```
-Co-Work sandbox (constrained):
+Sandbox / constrained host:
   - Working path contains /sessions/ AND .remote-plugins/ structure
   - OR env var CLAUDE_COWORK_SESSION is set
-  - OR RAM < 5 GB (proxy for sandbox — constrained containers and Co-Work both hit this)
+  - OR RAM < 5 GB (proxy for constrained containers and Co-Work-like sandboxes)
 
-Claude Code (capable):
-  - env var CLAUDE_CODE_VERSION is set
-  - OR path does not contain /sessions/
-  - When in doubt, probe RAM and tool availability — they tell you more than the label
+Local terminal host (capable):
+  - path does not contain /sessions/
+  - may be Claude Code, Codex, Cursor, or another full local host
+  - when in doubt, probe RAM and tool availability — they tell you more than the label
 ```
 
 ### Classifying job complexity
@@ -174,7 +174,7 @@ Claude Code (capable):
 - docx or pptx file ≤ 30 pages
 - Single short HTML or web clip
 
-**Complex job** (prefers Claude Code):
+**Complex job** (prefers a full local terminal host):
 - PDF with no text layer (image-based / scanned) — requires OCR tool install
 - PDF > 20 pages that needs layout analysis (docling/marker)
 - Batch conversion (multiple files)
@@ -185,23 +185,23 @@ Claude Code (capable):
 
 | Host | Job complexity | Action |
 |---|---|---|
-| Claude Code | Any | Proceed normally |
-| Co-Work | Simple | Proceed normally |
-| Co-Work | Complex | Surface routing recommendation (below), then ask whether to proceed anyway or switch |
+| Full local terminal host | Any | Proceed normally |
+| Sandboxed host | Simple | Proceed normally |
+| Sandboxed host | Complex | Surface routing recommendation (below), then ask whether to proceed anyway or switch |
 | Unknown | Complex | Surface routing recommendation — user can decide |
 
 **Routing recommendation message (use verbatim or adapt):**
 
 ```
-⚠️  This is a complex conversion job that runs best in Claude Code.
+⚠️  This is a complex conversion job that runs best in a full local terminal host.
 
 Reason: [image-based PDF requiring OCR / large document needing docling / batch job]
-Current environment: Co-Work sandbox — limited RAM, no brew/pip install, shorter timeouts.
+Current environment: sandboxed/constrained host — limited RAM, no brew/pip install, shorter timeouts.
 
-To run this in Claude Code:
+To run this in a local terminal host:
   1. Open a terminal
   2. cd to your project directory
-  3. Run: claude
+  3. Run your preferred host (`claude`, Codex, Cursor, etc.)
   4. Then ask: "Convert [filename] using mdpowers:convert"
 
 Alternatively, I can attempt the conversion here with degraded quality. Proceed anyway? (y/n)

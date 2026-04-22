@@ -6,6 +6,35 @@ Architectural decisions for the mdpowers plugin, logged in a lightweight ADR (Ar
 
 ---
 
+## Decision 011: Canonicalize repo instructions and add Codex install/update support
+
+**Status:** Accepted
+**Date:** 2026-04-22
+
+**Context:** The repo's actual skill payload was already mostly host-agnostic, but the surrounding scaffold was still Claude-first. `CLAUDE.md` was the effective instruction source of truth, the install docs stopped at Claude/Cursor/Cowork, and the `clip` skill still assumed `${CLAUDE_PLUGIN_ROOT}` when locating bundled scripts. That meant the repo could honestly claim portability while still leaving a real integration gap for Codex: the skills were conceptually portable, but not cleanly installable or maintainable as global Codex skills from GitHub.
+
+**Decision:** Make the repo's compatibility model explicit:
+
+1. `AGENTS.md` becomes the canonical repo instruction file; `CLAUDE.md` becomes a thin compatibility wrapper.
+2. `skills/` remains the canonical skill payload directory; `.claude-plugin/` remains Claude-specific packaging only.
+3. Introduce `MDPOWERS_ROOT` as the portable repo-root locator, with host-specific fallbacks (`CLAUDE_PLUGIN_ROOT` for plugin hosts, `${CODEX_HOME:-$HOME/.codex}/vendor_imports/repos/mdpowers-plugin` for the default Codex vendor install path).
+4. Add top-level Codex install/update scripts that clone or update the repo under the default Codex vendor path and install namespaced global skills (`mdpowers-clip`, `mdpowers-convert`, `mdpowers-transcribe`) into `~/.codex/skills/`.
+5. Update current-facing docs and skill text to describe Codex as a first-class host and to prefer `AGENTS.md` over `CLAUDE.md` when reading workspace conventions.
+
+**Consequences:**
+- One canonical agent-instruction file and one canonical skill payload directory
+- Codex can consume the same maintained GitHub repo rather than a hand-copied fork
+- Updating Codex installs becomes a documented, repeatable `git pull` + reinstall flow
+- The `mdpowers` repo stays future-friendly: hosts can differ in packaging, but not in the core skill content
+- Release metadata remains plugin-oriented (`.claude-plugin/plugin.json`), so Codex support is additive rather than a second packaging system
+
+**Alternatives Considered:**
+- **Keep `CLAUDE.md` as the only instruction file** — rejected because it keeps the scaffold Claude-first even when the skills are not
+- **Maintain a second Codex-only copy of the skills** — rejected because duplicated skill trees drift quickly
+- **Rely on manual Codex installs with no scripts** — workable for one machine, poor as a reusable GitHub distribution pattern
+
+---
+
 ## Decision 010: Version reconciliation and versioning convention
 
 **Status:** Accepted

@@ -1,10 +1,11 @@
 """Host mode detection and path translation for the transcribe skill.
 
 The skill runs in two host modes:
-- 'local': Claude Code terminal or Cursor — direct subprocess invocation,
-  real filesystem, real GPU/MPS access.
-- 'sandbox': Cowork — sandboxed mount, no GPU, session timeouts. Path 2
-  requires script emission instead of direct invocation.
+- 'local': full local terminal hosts such as Claude Code, Codex, or Cursor
+  with direct subprocess invocation, real filesystem, and real GPU/MPS access.
+- 'sandbox': constrained skill hosts such as Cowork with a sandboxed mount,
+  no GPU, and session timeouts. Path 2 requires script emission instead of
+  direct invocation.
 
 Detection uses environment heuristics with an explicit override via
 $MDPOWERS_HOST_MODE.
@@ -27,7 +28,7 @@ def detect_host_mode() -> str:
 
     Priority:
     1. $MDPOWERS_HOST_MODE env var (explicit override: 'local' or 'sandbox')
-    2. /sessions/ path heuristic (Cowork sandbox)
+    2. /sessions/ path heuristic (sandboxed host such as Cowork)
     3. $CLAUDECODE env var (Claude Code terminal)
     4. $CURSOR_AGENT or $TERM_PROGRAM=cursor (Cursor)
     5. Default: 'local' (the common case)
@@ -39,7 +40,7 @@ def detect_host_mode() -> str:
     if explicit in ("local", "sandbox"):
         return explicit
 
-    # Cowork sandbox heuristic: working dir is under /sessions/
+    # Sandboxed-host heuristic: working dir is under /sessions/
     cwd = os.getcwd()
     if os.path.exists("/sessions") and "/sessions/" in cwd:
         return "sandbox"

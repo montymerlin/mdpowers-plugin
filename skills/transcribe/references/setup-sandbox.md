@@ -2,11 +2,11 @@
 
 <!-- SYNC NOTE: This file mirrors scripts/setup_wizard.py. Changes here must be reflected there. -->
 
-Structured setup for Claude Code Cowork sandbox environment. This guide defines what the skill should do (tool calls) and what to ask the user (via AskUserQuestion), replacing terminal `input()` prompts with skill-native UI.
+Structured setup for sandboxed skill environments such as Cowork. This guide defines what the skill should do (tool calls) and what to ask the user (via AskUserQuestion), replacing terminal `input()` prompts with skill-native UI.
 
 ## Overview
 
-Same nine steps as `setup.md`, but adapted for skill execution in Cowork with:
+Same nine steps as `setup.md`, but adapted for skill execution in a sandboxed host with:
 - No terminal `input()` prompts
 - All questions via AskUserQuestion tool
 - All file operations via Write/Edit tools
@@ -227,7 +227,7 @@ If user chose **skip** or **defer**:
 
 ### What the skill does:
 
-1. **Detect sandbox** — Check for Cowork environment (env var `COWORK_MODE=1` or equivalent)
+1. **Detect sandbox** — Check for a sandboxed host environment (env var `COWORK_MODE=1` or equivalent)
 2. **If sandbox:** Offer to mount trusted host paths
 3. **If local:** Skip this step
 
@@ -238,7 +238,7 @@ title: "Host Path Mounting (Sandbox)"
 subtitle: "Safe file access to your computer (sandbox only)."
 
 Body:
-  In Cowork sandbox, I can mount directories from your computer
+  In a sandboxed host, I can mount directories from your computer
   for secure file input/output.
   
   This is optional. I can also save files locally in this project.

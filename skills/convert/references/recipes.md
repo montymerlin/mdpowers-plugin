@@ -61,8 +61,8 @@ Published journal articles, working papers, preprints.
 
 **Engine preference:**
 1. Built-in `pdf` skill (always preferred)
-2. marker (Claude Code only, best ML quality for academic layouts)
-3. docling (Claude Code only)
+2. marker (full local host only, best ML quality for academic layouts)
+3. docling (full local host only)
 4. pymupdf + post-processing (universal fallback)
 5. pdftotext + pandoc (last resort)
 
@@ -105,7 +105,7 @@ IPBES, FAO, UNDP, think tank reports, NGO publications.
 **Engine preference:**
 1. Built-in `pdf` skill
 2. pymupdf with page-range slicing for large reports
-3. docling (Claude Code only, if ≤100 pages)
+3. docling (full local host only, if ≤100 pages)
 4. pdftotext + pandoc (last resort)
 
 **Enrichment:** P2, P3, P4, P5, P6
@@ -194,7 +194,7 @@ Historical reports, older publications, photocopied PDFs, anything without a rel
 - Page images dominate the file
 
 **Engine preference:**
-1. Built-in `pdf` skill OCR path (Claude Code)
+1. Built-in `pdf` skill OCR path (when available in the current host)
 2. tesseract + pandoc (if available)
 3. rapidocr (lightweight fallback)
 4. **Loud failure** if no OCR available — do not silently produce garbage text

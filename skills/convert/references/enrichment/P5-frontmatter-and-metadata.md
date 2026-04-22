@@ -180,7 +180,7 @@ capture_notes: "..."                              # explains what failed and wha
 
 **When to set `wayback_url`:** whenever a Wayback Machine snapshot was used instead of the live URL. Preserves provenance so future agents know which snapshot was the source.
 
-These fields are not required by any recipe but are enforced by convention in research commons workflows. If working in a directory with `CLAUDE.md` that references a sources-index or clipping workflow, these fields are expected on every web-sourced capture.
+These fields are not required by any recipe but are enforced by convention in research commons workflows. If working in a directory with `AGENTS.md` or `CLAUDE.md` that references a sources-index or clipping workflow, these fields are expected on every web-sourced capture.
 
 ## Anti-patterns
 
@@ -247,4 +247,4 @@ tags:
 ---
 ```
 
-The `quality: degraded` + `quality_notes` is the key signal here. Future agents running in Claude Code can grep for `quality: degraded` and re-convert with docling/marker to improve the output.
+The `quality: degraded` + `quality_notes` is the key signal here. Future agents running in a full local host can grep for `quality: degraded` and re-convert with docling/marker to improve the output.

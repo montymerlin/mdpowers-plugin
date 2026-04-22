@@ -1,6 +1,6 @@
 # mdpowers
 
-Markdown superpowers for knowledge gardens. A host-agnostic Claude Agent SDK plugin for adaptive document-to-markdown conversion and web clipping, optimised for AI-readable output. Runs in Claude Code, Cursor, the Claude desktop app (Cowork mode), and any other host that speaks the Agent SDK plugin contract.
+Markdown superpowers for knowledge gardens. A host-agnostic markdown-ingestion toolkit with canonical skills in `skills/`, Claude plugin packaging in `.claude-plugin/`, and Codex global-skill install support. Runs in Claude plugin hosts, Codex, Cursor, and other compatible agent environments.
 
 ## Skills
 
@@ -28,7 +28,10 @@ See [`skills/convert/SKILL.md`](skills/convert/SKILL.md) for the full design, an
 
 ## Install
 
-The plugin follows the standard Agent SDK plugin contract (`.claude-plugin/plugin.json` + `skills/<name>/SKILL.md`), so any host that loads Agent SDK plugins can use it.
+The repo supports two installation models:
+
+- **Claude plugin hosts** use the Agent SDK plugin contract (`.claude-plugin/plugin.json` + `skills/<name>/SKILL.md`)
+- **Codex** installs the same skills globally into `~/.codex/skills/` and points them back at a vendor clone of this repo
 
 **Claude Code:**
 
@@ -41,6 +44,39 @@ Or clone and symlink for local development:
 ```bash
 git clone https://github.com/montymerlin/mdpowers-plugin.git
 ln -s "$(pwd)/mdpowers-plugin" ~/.claude/plugins/mdpowers
+```
+
+**Codex (global skills, recommended vendor-clone flow):**
+
+From any checkout of this repo:
+
+```bash
+bash scripts/install_codex_skills.sh --from-github
+```
+
+This clones or updates the repo at:
+
+```bash
+~/.codex/vendor_imports/repos/mdpowers-plugin
+```
+
+and installs these global Codex skills:
+
+- `mdpowers-clip`
+- `mdpowers-convert`
+- `mdpowers-transcribe`
+
+Update later with:
+
+```bash
+bash ~/.codex/vendor_imports/repos/mdpowers-plugin/scripts/update_codex_skills.sh
+```
+
+If you want Codex to point at your current working checkout instead of the vendor clone:
+
+```bash
+export MDPOWERS_ROOT="$(pwd)"
+bash scripts/install_codex_skills.sh --force
 ```
 
 **Cursor (via MCP):** add as an MCP server in Cursor's MCP settings and restart Cursor. Skills will appear as tool calls.
@@ -69,12 +105,14 @@ All dependencies use lazy installation — they're only probed when a skill is f
 ```
 mdpowers-plugin/
 ├── README.md                       # this file — human-facing overview
-├── CLAUDE.md                       # agent instruction set
+├── AGENTS.md                       # canonical repo instructions
+├── CLAUDE.md                       # Claude compatibility wrapper
 ├── COMPATIBILITY.md                # host matrix + runtime contract
 ├── DECISIONS.md                    # architectural decision log
 ├── ROADMAP.md                      # future directions
 ├── CHANGELOG.md                    # narrative change history
 ├── .claude-plugin/plugin.json      # plugin manifest
+├── scripts/                        # host install/update helpers
 └── skills/
     ├── convert/                    # adaptive document-to-markdown (v0.3)
     ├── clip/                       # web-page-to-markdown via Defuddle
@@ -88,14 +126,14 @@ This plugin inherits the agentic-scaffold design principles. In brief:
 
 1. **Guides not rails** — Recipes, playbooks, and phase instructions are defaults; agents can deviate with reason. Over-prescription is itself a failure mode.
 2. **Progressive disclosure** — Root docs stay small; skill-specific detail lives in `skills/<name>/references/` and loads on demand.
-3. **Dual-audience documentation** — README.md for humans, CLAUDE.md for agents. Don't collapse them.
+3. **Dual-audience documentation** — README.md for humans, AGENTS.md for canonical agent instructions, CLAUDE.md as a thin compatibility wrapper.
 4. **Adaptive over prescriptive** — Probe environment and source at runtime; don't assume fixed inputs or fixed tools.
 5. **Graceful degradation** — Fall back silently when tools are missing; record quality downgrades in frontmatter. Never silently produce garbage.
 6. **Decisions as first-class artifacts** — Significant choices get logged in DECISIONS.md before implementation.
 7. **Source-grounded defaults** — Every convention traces to a documented source or a lesson from real usage.
 8. **Host-agnostic by construction** — No hardcoded paths, no assumed tools, no branding to a specific host. Probe at runtime; degrade gracefully.
 
-The full rationale for each principle is in [`CLAUDE.md`](CLAUDE.md).
+The full rationale for repo conventions is in [`AGENTS.md`](AGENTS.md).
 
 ## Roadmap
 
@@ -111,10 +149,10 @@ See [ROADMAP.md](ROADMAP.md) for planned work and future ideas. Highlights:
 
 Contributions welcome. Before making structural changes:
 
-1. Read [CLAUDE.md](CLAUDE.md) for conventions and boundaries
+1. Read [AGENTS.md](AGENTS.md) for conventions and boundaries
 2. Check [DECISIONS.md](DECISIONS.md) for prior architectural choices
 3. Log new decisions before implementing them
-4. Follow the skill-authoring conventions in CLAUDE.md
+4. Follow the skill-authoring conventions in AGENTS.md
 5. Update CHANGELOG.md after significant work sessions
 6. For portability changes, also update [COMPATIBILITY.md](COMPATIBILITY.md)
 

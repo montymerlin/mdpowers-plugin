@@ -1,6 +1,6 @@
 # Compatibility
 
-`mdpowers` is a Claude Agent SDK plugin. It follows the standard plugin contract (`.claude-plugin/plugin.json` + `skills/<name>/SKILL.md`) and runs in any host that supports Agent SDK plugins. The plugin makes no assumption about which host is loading it — all environment-specific details are probed at runtime.
+`mdpowers` is a host-agnostic skills repo. Claude plugin hosts consume `.claude-plugin/` + `skills/`; Codex consumes globally installed skills that point back at the same repo. The repo makes no assumption about which host is loading it — host-specific details are probed at runtime.
 
 ## Supported hosts
 
@@ -8,6 +8,7 @@
 |------|--------|---------|-------|
 | **Claude Code** | Supported | `claude plugins install github.com/montymerlin/mdpowers-plugin` or clone and symlink into `~/.claude/plugins/` | Primary development environment. Built-in `pdf`/`docx`/`pptx`/`xlsx` skills available for delegation. |
 | **Claude desktop app (Cowork mode)** | Supported | Drop the plugin directory into your Cowork plugins folder | Tight-RAM sandbox — `docling` is skipped and `pymupdf` is used instead. Graceful degradation handles this automatically. |
+| **Codex** | Supported (skills-only) | `bash scripts/install_codex_skills.sh --from-github` | Codex does not use `.claude-plugin/`; it installs global skills (`mdpowers-clip`, `mdpowers-convert`, `mdpowers-transcribe`) that point back at a vendor clone of this repo. |
 | **Cursor (via MCP)** | Supported | Add as an MCP server in Cursor settings | Skills appear as tool calls. Built-in Anthropic skills are not available here — `convert` falls back to `pymupdf`/`pandoc`. |
 | **Claude Agent SDK (custom host)** | Supported | Follow the Agent SDK plugin loading docs | Works anywhere the SDK runs, provided Python and Node are on PATH. |
 | **Anthropic API (direct tool use)** | Partial | No plugin loader; copy skill instructions into a system prompt and implement tool bindings yourself | Skills are markdown + scripts, so the content is portable, but you'll need to wire up the tool invocations by hand. |
@@ -19,7 +20,7 @@ The plugin assumes:
 - **Python 3.10+** on PATH (for `convert`'s Python fallbacks: `pymupdf`, `pandoc`, optional `docling`, optional `marker`)
 - **Node 18+** on PATH (for `clip`'s Defuddle wrapper)
 - **Writable home directory** or `MDPOWERS_NODE_PREFIX` set to a writable path (for lazy `defuddle` install)
-- **Working directory access** via `${CLAUDE_PLUGIN_ROOT}` (standard in Agent SDK)
+- **A repo root locator** via `MDPOWERS_ROOT`, or a host-specific equivalent like `${CLAUDE_PLUGIN_ROOT}`. Default Codex vendor path is `${CODEX_HOME:-$HOME/.codex}/vendor_imports/repos/mdpowers-plugin`.
 
 Everything else is detected at runtime. The plugin never assumes a specific path layout, a specific RAM ceiling, or which tools are pre-installed. See `skills/convert/references/environments.md` for the full detection procedure.
 
@@ -55,7 +56,7 @@ Detection is "soft" — if probing a field fails, it uses a conservative default
 
 **Low-RAM sandboxes (Cowork, small CI runners) — `docling` OOMs and `transcribe` P2 unavailable.** Docling and WhisperX each need ~6GB to run safely. Below that, they get SIGKILL'd. The convert skill probes RAM and flags `docling: ✗ (oom-risk)` when `ram_gb < 6`; transcribe probes and marks `p2_available: ✗ (oom-risk)`, falling back to P1 (YouTube) or P3 (if configured). This is recorded as `quality: degraded` in the output frontmatter so the file can be re-processed later in a beefier environment.
 
-**Cursor and pure-MCP hosts — no built-in Anthropic skills.** The `convert` skill prefers delegating to built-in `pdf`/`docx`/`pptx`/`xlsx` skills when they're present. In hosts where those aren't available, it falls through to the next engine in the preference list. No configuration needed. Transcribe works normally (all three pathways available if tools are installed).
+**Cursor, Codex, and pure-MCP hosts — no built-in Anthropic skills.** The `convert` skill prefers delegating to built-in `pdf`/`docx`/`pptx`/`xlsx` skills when they're present. In hosts where those aren't available, it falls through to the next engine in the preference list. No configuration needed. Transcribe works normally (all three pathways available if tools are installed).
 
 **Sandboxes without network — no lazy installs and no P1 transcribe.** `clip` lazy-installs `defuddle` on first use; `transcribe` P1 requires network for YouTube/Whisper API. If the environment has no network access, both fail and the skills report the install/network error. Pre-install `defuddle` at `$MDPOWERS_NODE_PREFIX` or pre-download WhisperX models to `$XDG_CACHE_HOME/mdpowers/` to work around this.
 
@@ -63,8 +64,8 @@ Detection is "soft" — if probing a field fails, it uses a conservative default
 
 ## What the plugin does NOT assume
 
-- A specific directory structure in the working workspace (no hardcoded `research/`, `projects/`, etc. — the clip skill checks for a workspace `CLAUDE.md` or `README.md` to derive conventions if present)
-- A specific session-slug path prefix (`/sessions/...`, `/home/user/...`, etc. — everything uses `${CLAUDE_PLUGIN_ROOT}` or shell env vars)
+- A specific directory structure in the working workspace (no hardcoded `research/`, `projects/`, etc. — the skills check for a workspace `AGENTS.md`, `CLAUDE.md`, or `README.md` to derive conventions if present)
+- A specific session-slug path prefix (`/sessions/...`, `/home/user/...`, etc. — everything uses `MDPOWERS_ROOT`, `${CLAUDE_PLUGIN_ROOT}`, or shell env vars)
 - The presence of any specific tool — everything is probed
 - A particular operating system — the env probe handles macOS, Linux, and should degrade cleanly on Windows (untested — report issues)
 - A minimum RAM — the probe records what's available and recipes degrade accordingly
@@ -87,4 +88,4 @@ If the plugin fails on a new host, open an issue at [github.com/montymerlin/mdpo
 - Host name and version (e.g., "Claude Code 1.2.3", "Cursor 0.38", "Cowork desktop 2026-04-09")
 - Output of the Probe phase if `convert` got that far
 - Which engine was selected and how it failed
-- Relevant env vars (`CLAUDE_PLUGIN_ROOT`, `MDPOWERS_NODE_PREFIX`, `PATH`)
+- Relevant env vars (`MDPOWERS_ROOT`, `CLAUDE_PLUGIN_ROOT`, `MDPOWERS_NODE_PREFIX`, `PATH`)

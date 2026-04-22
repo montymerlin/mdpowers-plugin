@@ -40,14 +40,14 @@ Run `scripts/probe.py` (or invoke its logic directly). Probe does three things i
 **Host routing check (always run for transcription):** Transcription is always a complex job — it requires ffmpeg, long-running processes, and often pip-installed models. If running in Co-Work or a constrained sandbox (RAM < 5GB, no pip/brew, path contains `/sessions/`), surface this recommendation before Route:
 
 ```
-⚠️  Transcription runs best in Claude Code.
+⚠️  Transcription runs best in a full local terminal host (Claude Code or Codex).
 
 Reason: transcription requires ffmpeg, long-running Whisper processes, and sometimes
 local model downloads — all of which are constrained or unavailable in Co-Work.
 
-To run in Claude Code:
+To run in a full local terminal host:
   1. Open a terminal and cd to your project
-  2. Run: claude
+  2. Run your preferred agent host (`claude` or Codex)
   3. Ask: "Transcribe [filename or URL] using mdpowers:transcribe"
 
 Proceed anyway in this environment? (y/n)
@@ -193,14 +193,14 @@ First-time users should run `/transcribe setup` to initialise vocabulary files, 
 
 This skill runs in two host modes:
 
-- **Local** (Claude Code terminal, Cursor): full subprocess access, real filesystem, GPU available. All pathways execute directly.
+- **Local** (Claude Code terminal, Codex, Cursor): full subprocess access, real filesystem, GPU available. All pathways execute directly.
 - **Sandbox** (Cowork): sandboxed mount, no GPU, session timeouts. P1 works directly. P2 requires script emission — the skill generates a `.sh` file the user runs on their local machine.
 
 Host mode is auto-detected by `lib/host_mode.py` (heuristics: `/sessions/` path, `$CLAUDECODE`, `$CURSOR_AGENT`) and can be explicitly overridden via `$MDPOWERS_HOST_MODE=local|sandbox`.
 
 ## Commons-awareness
 
-If you detect a `CLAUDE.md` in the working tree, read it and honour any conventions it declares. Watch for filename conventions, output directory preferences, and commit policy. Name what you're applying at the start of your response.
+If you detect an `AGENTS.md` or `CLAUDE.md` in the working tree, read the nearest canonical instruction file and honour any conventions it declares. Watch for filename conventions, output directory preferences, and commit policy. Name what you're applying at the start of your response.
 
 ## Relationship to other skills
 

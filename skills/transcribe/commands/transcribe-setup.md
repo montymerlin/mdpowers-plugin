@@ -20,7 +20,7 @@ Run this once per machine to configure the transcribe skill. Idempotent — runn
 
 ## Implementation
 
-- **Local mode** (Claude Code, Cursor): runs `scripts/setup_wizard.py` interactively
+- **Local mode** (Claude Code, Codex, Cursor): runs `scripts/setup_wizard.py` interactively
 - **Sandbox mode** (Cowork): the skill drives the same steps via chat UI, following `references/setup-sandbox.md`
 
 ## When to run
