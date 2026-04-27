@@ -1,5 +1,5 @@
 ---
-name: mdpowers:transcribe
+name: transcribe
 description: Transcribe audio and video to structured, speaker-labelled markdown with adaptive vocabulary correction. Use when the user asks to "transcribe", "get a transcript", "transcribe this video", "transcribe this podcast", "transcribe this audio", provides a YouTube URL they want transcribed, mentions "diarization", "speaker labels", or asks to process audio/video into text. Handles YouTube videos (native subtitles or Whisper API fallback), local audio files (WhisperX + pyannote diarization), and stubs for cloud API services. Vocabulary priming and post-correction use a cascading global + project-local overlay system.
 ---
 

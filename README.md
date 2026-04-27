@@ -48,62 +48,7 @@ See [`skills/convert/SKILL.md`](skills/convert/SKILL.md) for the full design, an
 
 ## Install
 
-The repo supports two installation models:
-
-- **Claude plugin hosts** use the Agent SDK plugin contract (`.claude-plugin/plugin.json` + `skills/<name>/SKILL.md`)
-- **Codex** installs the same skills globally into `~/.codex/skills/` and points them back at a vendor clone of this repo
-
-**Claude Code:**
-
-```bash
-claude plugins install github.com/montymerlin/mdpowers-plugin
-```
-
-Or clone and symlink for local development:
-
-```bash
-git clone https://github.com/montymerlin/mdpowers-plugin.git
-ln -s "$(pwd)/mdpowers-plugin" ~/.claude/plugins/mdpowers
-```
-
-**Codex (global skills, recommended vendor-clone flow):**
-
-From any checkout of this repo:
-
-```bash
-bash scripts/install_codex_skills.sh --from-github
-```
-
-This clones or updates the repo at:
-
-```bash
-~/.codex/vendor_imports/repos/mdpowers-plugin
-```
-
-and installs these global Codex skills:
-
-- `mdpowers-clip`
-- `mdpowers-convert`
-- `mdpowers-transcribe`
-
-Update later with:
-
-```bash
-bash ~/.codex/vendor_imports/repos/mdpowers-plugin/scripts/update_codex_skills.sh
-```
-
-If you want Codex to point at your current working checkout instead of the vendor clone:
-
-```bash
-export MDPOWERS_ROOT="$(pwd)"
-bash scripts/install_codex_skills.sh --force
-```
-
-**Cursor (via MCP):** add as an MCP server in Cursor's MCP settings and restart Cursor. Skills will appear as tool calls.
-
-**Claude desktop app (Cowork mode):** drop the plugin directory into your Cowork plugins folder.
-
-For the full compatibility matrix, runtime contract, and per-host quirks, see [COMPATIBILITY.md](COMPATIBILITY.md).
+See [SETUP.md](SETUP.md) for full install instructions and compatibility matrix across Cowork, Claude Code, Codex, Cursor, Agent SDK, and direct API use.
 
 ## Dependencies
 
@@ -118,7 +63,7 @@ All dependencies use lazy installation — they're only probed when a skill is f
 | `/convert` | marker (optional) | Hosts with GPU or beefy CPU | `pip install marker-pdf --break-system-packages` |
 | `/clip` | defuddle (npm) | Always | Auto-installed on first use at `$MDPOWERS_NODE_PREFIX` |
 
-**Runtime requirements:** Python 3.10+ and Node 18+ on PATH, plus a writable home directory (or `MDPOWERS_NODE_PREFIX` set to a writable path). See [COMPATIBILITY.md](COMPATIBILITY.md) for the full contract.
+**Runtime requirements:** Python 3.10+ and Node 18+ on PATH, plus a writable home directory (or `MDPOWERS_NODE_PREFIX` set to a writable path). See [SETUP.md](SETUP.md) for the full contract.
 
 ## Project Structure
 
@@ -127,10 +72,12 @@ mdpowers-plugin/
 ├── README.md                       # this file — human-facing overview
 ├── AGENTS.md                       # canonical repo instructions
 ├── CLAUDE.md                       # Claude compatibility wrapper
-├── COMPATIBILITY.md                # host matrix + runtime contract
+├── SETUP.md                        # canonical install + compatibility reference (all hosts)
+├── COMPATIBILITY.md                # stub redirecting to SETUP.md
 ├── DECISIONS.md                    # architectural decision log
 ├── ROADMAP.md                      # future directions
 ├── CHANGELOG.md                    # narrative change history
+├── .gitignore
 ├── .claude-plugin/plugin.json      # plugin manifest
 ├── scripts/                        # host install/update helpers
 └── skills/
@@ -174,7 +121,7 @@ Contributions welcome. Before making structural changes:
 3. Log new decisions before implementing them
 4. Follow the skill-authoring conventions in AGENTS.md
 5. Update CHANGELOG.md after significant work sessions
-6. For portability changes, also update [COMPATIBILITY.md](COMPATIBILITY.md)
+6. For portability or install-pathway changes, update [SETUP.md](SETUP.md) (the canonical reference; `COMPATIBILITY.md` is now a stub that redirects there)
 
 ## License
 

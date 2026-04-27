@@ -4,6 +4,18 @@ A narrative record of how this plugin evolves. Updated after significant work se
 
 ---
 
+## 2026-04-27 — Plugin audit pass + skill name fix
+
+Audited the plugin against `/create-cowork-plugin` standards. Fixed the namespaced skill `name:` frontmatter bug across all 3 SKILL.md files (`mdpowers:clip` → `clip`, etc.). Expanded `.gitignore` from minimal (5 patterns) to full portfolio template covering `_dist/`, `*.plugin`, `node_modules/`, `.venv/`, editor noise, worktrees.
+
+AGENTS.md Repo map updated to include `SETUP.md` (mark COMPATIBILITY.md as stub) and `.gitignore`; added the canonical "Packaging for Cowork" section. SETUP.md got the "Quick Install (for AI agents)" decision tree (with required-dependency check for Python 3.10+ and Node 18+ before any install path runs), Cowork 3-option packaging pattern, and global-vs-local Claude Code install split.
+
+Fixed README.md stale references: Project Structure was missing SETUP.md and `.gitignore`, and listed COMPATIBILITY.md as a real doc (it's a stub now); Contributing step 6 was directing portability changes to COMPATIBILITY.md (now points at SETUP.md as the canonical reference). **Flagged for local cleanup** (perm-locked from session): `__pycache__/` directories at `skills/transcribe/scripts/{,lib/}` are tracked despite being in `.gitignore` — needs `git rm -r --cached`.
+
+## 2026-04-27 — Cowork packaging: SETUP.md replaces COMPATIBILITY.md
+
+Folded the host-compatibility and runtime-contract content from `COMPATIBILITY.md` into a new `SETUP.md` that follows the workspace-wide setup-canon pattern. `COMPATIBILITY.md` is now a one-line stub redirecting to SETUP.md (preserves any external links). `README.md`'s install section was trimmed to a pointer. The plugin is now packaged as `mdpowers-0.4.3.plugin` in `ops/plugins/_dist/` using the new `cowork-plugin-packager` skill. No conversion-engine or skill changes.
+
 ## 2026-04-23 — Clarified grounding benefits and markdown tradeoffs
 
 Refined the README and compatibility docs to make a more honest claim about why markdown conversion helps in agent workflows. The docs now say explicitly that clean markdown or structured text often improves retrieval, chunking, citation, and synthesis, which can reduce hallucination risk indirectly by improving grounding. They also now spell out the tradeoffs that were previously too implicit: conversion takes time, interactive prep can consume tokens, OCR can introduce errors, and markdown can lose layout or visual information that still matters for scans, forms, dense tables, and highly designed PDFs. This makes the repo's positioning more nuanced and more credible for people using `mdpowers` in serious research or document-heavy workflows.

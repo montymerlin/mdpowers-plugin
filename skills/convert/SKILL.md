@@ -1,5 +1,5 @@
 ---
-name: mdpowers:convert
+name: convert
 description: Adaptively convert documents (PDF, Word, PowerPoint, and more) into clean, AI-readable markdown. Use when the user asks to "convert" a document, "turn this into markdown", "extract text from", "process this file", "pdf to markdown", "docx to markdown", "pptx to markdown", "slide deck to markdown", or provides a document they want as markdown. This skill replaces the older pdf-convert skill and handles any document-to-markdown conversion adaptively — it picks the right engine for the environment, matches the source to the closest archetype in its recipe catalogue, applies appropriate enrichment (diagrams → mermaid, comparisons → tables, visuals → semantic descriptions), and verifies the output against recipe-specific success criteria.
 ---
 

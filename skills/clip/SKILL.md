@@ -1,5 +1,5 @@
 ---
-name: mdpowers:clip
+name: clip
 description: >
   Clip web pages to clean markdown using Defuddle. Use when the user asks to
   "clip this", "save this page", "defuddle", "web clip", "save this url",
