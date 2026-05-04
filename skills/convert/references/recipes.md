@@ -59,12 +59,19 @@ Published journal articles, working papers, preprints.
 - Metadata: DOI present, author block on first page, journal name visible
 - Size: typically 10-40 pages
 
-**Engine preference:**
-1. Built-in `pdf` skill (always preferred)
-2. marker (full local host only, best ML quality for academic layouts)
-3. docling (full local host only)
-4. pymupdf + post-processing (universal fallback)
-5. pdftotext + pandoc (last resort)
+**Engine preference:** Branches on `math_density` from Probe — full routing rules in `references/environments.md` → "For PDF inputs".
+
+*math_density: high* (theorem/equation markers detected):
+1. Built-in `pdf` skill
+2. marker (full local host only)
+3. docling (full local host only, RAM ≥6GB)
+4. pymupdf + post-processing
+5. pdftotext + pandoc
+
+*math_density: low* (prose-heavy, minimal notation):
+1. pdftotext + pandoc
+2. pymupdf + post-processing (if 2-column bleed detected in Verify)
+3. Built-in `pdf` skill (only if Verify rejects the above)
 
 **Enrichment:** P3, P4, P5, P6
 

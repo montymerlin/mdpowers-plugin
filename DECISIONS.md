@@ -6,6 +6,28 @@ Architectural decisions for the mdpowers plugin, logged in a lightweight ADR (Ar
 
 ---
 
+## Decision 012: Math-density engine routing for PDF conversions
+
+**Status:** Accepted
+**Date:** 2026-05-04
+
+**Context:** In a GE Wave 2 sources-commons session, two academic PDFs were converted in a single session consuming ~43–50K tokens. Both used the built-in Anthropic `pdf` skill, which reads rendered page images. The SSRN working paper (44 pages, formal math with LaTeX definitions and theorem) genuinely needed a vision-capable engine for accurate notation. The IJCCR journal paper (26 pages, one matrix equation, prose-heavy) did not — `pdftotext` would have produced equivalent quality at ~5% of the token cost. No content-type routing existed; the skill applied the same engine to both without distinction.
+
+**Decision:** Add a `math_density` probe to Phase 1 of `convert`. The probe runs `pdftotext <file> - | head -c 5000` (or scans the first page image if pdftotext is unavailable) and flags `high` if LaTeX markers or structural theorem/definition markers are found, `low` otherwise. Engine preference for the `academic-paper` recipe now branches on this signal: `math_density: high` → vision-capable engine first (`pdf` skill, marker, docling); `math_density: low` → text-first (`pdftotext` → pymupdf → `pdf` skill only if Verify rejects prior options). Two secondary changes: Phase 4 Enrich now explicitly says to load only the playbooks needed for the detected document (not all P1–P6); Planning Budget now recommends separate agent calls for batches of 2+ PDFs where each is >15 pages.
+
+**Consequences:**
+- Prose-heavy academic papers route to `pdftotext` by default, reducing per-conversion token cost ~80% for that class
+- Math-heavy papers continue to use vision-capable engines — no quality regression for the case that needs it
+- Agents must run the math-density probe as part of Phase 1; `pdftotext` is no longer unconditionally last resort for PDFs
+- The `pdf` skill "always preferred" rule now applies to non-PDF formats only; PDF routing is content-conditional
+
+**Alternatives Considered:**
+- **Always use `pdf` skill for all PDFs** — rejected; correct for math-heavy content, unnecessarily expensive for prose
+- **Always use `pdftotext` first** — rejected; breaks math-heavy papers where notation transcription requires visual reading
+- **BW-specific wrapper skill only** — rejected as the primary fix; the routing logic belongs in the shared skill, not a project override
+
+---
+
 ## Decision 011: Canonicalize repo instructions and add Codex install/update support
 
 **Status:** Accepted

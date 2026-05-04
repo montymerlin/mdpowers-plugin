@@ -27,6 +27,7 @@ builtin_skills:
   docx: ✓ | ✗
   pptx: ✓ | ✗
   xlsx: ✓ | ✗
+math_density: high | low           # high = theorem/equation markers found; low = prose-only
 ```
 
 The `environment` field is a best-effort tag for narration and debugging — don't condition behaviour on it. Condition behaviour on `ram_gb`, `tools`, and `builtin_skills` instead. That way the plugin keeps working in hosts the tag doesn't recognise.
@@ -66,19 +67,52 @@ The `environment` field is a best-effort tag for narration and debugging — don
 ### Built-in skills
 - Check whether the skill is listed in the active skills registry. Built-in skills from Anthropic (`pdf`, `docx`, `pptx`, `xlsx`) are typically available in Claude Code and the Claude desktop app (including Cowork mode), but **may not be available** in Cursor via MCP or in custom Agent SDK hosts. Always probe rather than assume.
 
+### Math density
+
+Math-heavy PDFs require a vision-capable engine to preserve notation accurately. Prose-heavy PDFs extract cleanly with `pdftotext` at a fraction of the token cost. Detecting density early gates the engine choice and avoids loading expensive engines unnecessarily.
+
+**Scan method:**
+1. If `pdftotext` is available: run `pdftotext <file> - | head -c 5000` to get the first ~5000 characters. Check for:
+   - LaTeX markers: `\begin{`, `\end{`, `$$`, `\[`, `\]`, `\theorem`, `\lemma`, `\definition`, `\proof`
+   - Structural math markers (case-insensitive regex): `theorem \d`, `lemma \d`, `definition \d`, `proposition \d`, followed by a period or colon
+   - Unicode math symbols in extracted text: `≡`, `∈`, `∀`, `∃`, `→`, `⊆`, `∧`, `∨`
+2. If `pdftotext` is unavailable but the `pdf` skill is available: read the first page image and scan the rendered text for the same markers.
+3. If neither is available: default to `high` (conservative — accuracy over speed).
+
+**Threshold:** flag `math_density: high` if any LaTeX marker OR two or more structural math markers are found. Otherwise `low`.
+
+**Include in probe output:**
+```
+Math density: low (no theorem/equation markers in first 5000 chars)
+```
+or:
+```
+Math density: high (LaTeX markers detected: \begin{definition}, Theorem 1)
+```
+
 ## Engine preference lists
 
 Each recipe declares an ordered preference list. Probe picks the highest-preference engine that's viable in the current environment.
 
 ### For PDF inputs
 
-**Quality order (best → worst):**
+Engine selection for PDFs branches on `math_density` from Probe:
 
-1. **Built-in Anthropic `pdf` skill** — always first choice when available. Maintained by the people who trained the model. Handles layout, figures, tables, OCR, citations. Availability varies by host — probe first.
-2. **marker** — heavy ML extractor; best quality for academic papers and complex layouts. Needs GPU or beefy CPU — typically only viable in unconstrained local terminal hosts.
-3. **docling** — IBM's tool; good quality but memory-hungry. Requires RAM ≥6GB. OOMs reliably in low-RAM sandboxes and small CI runners.
-4. **pymupdf + post-processing** — universal fallback. Works in any environment with Python. Produces decent text extraction without layout analysis.
-5. **pdftotext + pandoc** — last resort. Lowest quality but very fast and available almost everywhere.
+**`math_density: high`** — LaTeX notation, formal theorem/definition blocks, symbol-heavy content. Vision-capable engine required — plain text extraction will garble notation.
+
+1. **Built-in Anthropic `pdf` skill** — first choice when available; reads rendered page images accurately. Availability varies by host — probe first.
+2. **marker** — full local host only; best ML quality for academic layouts with complex notation. Needs GPU or beefy CPU.
+3. **docling** — full local host only, RAM ≥6GB required. OOMs reliably in low-RAM sandboxes.
+4. **pymupdf + post-processing** — universal fallback; text layer only, notation may degrade.
+5. **pdftotext + pandoc** — last resort only; expect significant math notation loss.
+
+**`math_density: low`** — prose-heavy paper, report, or article with minimal or no equations. Text extraction first — faster, cheaper, comparable quality.
+
+1. **pdftotext + pandoc** — first choice; zero vision tokens, handles prose and references cleanly.
+2. **pymupdf + post-processing** — use if `pdftotext` output shows 2-column bleed artifacts in Verify.
+3. **Built-in Anthropic `pdf` skill** — escalate only if Verify rejects the above two options (column bleed unresolvable, figures required, OCR issues detected).
+
+> The built-in `pdf` skill reads rendered page images. For a 26-page prose paper this consumes substantial vision tokens. `pdftotext` produces equivalent quality at roughly 5% of the cost. Reserve vision-capable engines for content that genuinely requires them.
 
 ### For docx inputs
 
@@ -219,6 +253,7 @@ Source: Kwaxala Overview 2026.pdf
   - Low text density (~80 words/page average)
   - High image density (25 significant visuals)
   - No DOI, no ISBN, no academic metadata
+  - Math density: low (no theorem/equation markers in first 5000 chars)
 
 Environment: cowork-sandbox (low-RAM)
   - RAM: 3.8 GB (tight — docling will OOM)

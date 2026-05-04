@@ -57,6 +57,8 @@ Not every document needs the same treatment. Probe drives the budget choice:
 
 Escalation is cheap. Under-planning is expensive. When in doubt, escalate one level.
 
+**Multiple PDFs in one session.** Each PDF conversion leaves its full output in context. If converting two or more PDFs where each is >15 pages, spawn separate agent calls — one per PDF. Batching compounds context size and inflates the token cost of every conversion after the first.
+
 ## Phase 1 — Probe
 
 Probe runs two parallel detections:
@@ -69,7 +71,7 @@ Probe runs two parallel detections:
 
 Output: a short profile you carry into Plan. Example:
 ```
-Source: 25-page PDF, widescreen, image-heavy, 0.3 text-image ratio — likely slide deck
+Source: 25-page PDF, widescreen, image-heavy, 0.3 text-image ratio — likely slide deck; math density: low
 Environment: low-RAM sandbox (3.8GB), pymupdf ✓, docling ✗ (OOM risk), built-in pptx ✓
 ```
 
@@ -77,7 +79,7 @@ Environment: low-RAM sandbox (3.8GB), pymupdf ✓, docling ✗ (OOM risk), built
 
 Score the source against the recipe catalogue in `references/recipes.md` using the rubric in `references/matching.md`. Highest-scoring recipe wins if it scores ≥5; otherwise fall through to `hybrid-novel` and escalate to deep budget.
 
-Pick an engine from the recipe's ordered preference list, filtered to what the environment supports. **Always prefer built-in Anthropic skills** (`pdf`, `docx`, `pptx`, `xlsx`) when they cover the need — they are maintained by the people who trained you.
+Pick an engine from the recipe's ordered preference list, filtered to what the environment supports. For PDFs, the list branches on `math_density` from Probe — see `references/environments.md`. For non-PDF inputs (docx, pptx, xlsx), **always prefer built-in Anthropic skills** — they are maintained by the people who trained you.
 
 Decide budget (tight/standard/deep) using the rules above. Then:
 - **Tight:** proceed to Execute silently, with one sentence of narration
@@ -103,6 +105,15 @@ The core playbooks:
 - **P6** — `cross-references-and-glossary.md` — build a short glossary at the bottom of documents that introduce named concepts, acronyms, or initiatives
 
 Enrichment is where most of the AI-readability value gets added. Treat it seriously. If a recipe's enrichment list seems wrong for this specific document (e.g. a book that has no diagrams), adapt — skip playbooks that don't apply, borrow playbooks from other recipes that do.
+
+**Load only what you'll use.** Each playbook file you read is added to context for the session. Only load playbooks that apply to the detected document. For a typical academic paper:
+- **P5** (frontmatter) — always load
+- **P6** (glossary) — load if the paper introduces named concepts, acronyms, or a protocol
+- **P3/P4** (images + semantic descriptions) — load only if figures are present
+- **P1** (diagrams) — load only if flowcharts or process diagrams were detected in Probe
+- **P2** (comparisons) — rarely needed for academic papers; load only if explicit before/after or this/that structures are present
+
+Skipping a playbook means not loading it — do not read a file and then decide not to apply it.
 
 ## Phase 5 — Verify
 
