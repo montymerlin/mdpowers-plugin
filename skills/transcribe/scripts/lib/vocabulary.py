@@ -41,6 +41,7 @@ Both entry shapes (list or dict) are supported during loading:
 """
 
 import json
+import os
 import re
 from datetime import datetime
 from pathlib import Path

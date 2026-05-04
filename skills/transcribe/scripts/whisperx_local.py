@@ -13,6 +13,7 @@ device handling (CPU for WhisperX ctranslate2, MPS/GPU for pyannote), and OOM fa
 import argparse
 import json
 import logging
+import subprocess
 import sys
 import traceback
 from datetime import datetime, timezone
@@ -237,12 +238,53 @@ def _run_diarization(audio_path: Path, hf_token: str, num_speakers: Optional[int
     from pyannote.audio import Pipeline
 
     logger.info("Loading pyannote diarization pipeline...")
-    pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization-3.1", use_auth_token=hf_token)
+    try:
+        pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization-3.1", token=hf_token)
+    except TypeError:
+        pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization-3.1", use_auth_token=hf_token)
 
     logger.info(f"Running diarization: {audio_path}")
-    diarization = pipeline(str(audio_path), num_speakers=num_speakers)
+    wav_path = audio_path.with_suffix(".16k.wav")
+    if not wav_path.exists():
+        subprocess.run(
+            [
+                "ffmpeg",
+                "-y",
+                "-i",
+                str(audio_path),
+                "-ac",
+                "1",
+                "-ar",
+                "16000",
+                str(wav_path),
+            ],
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
 
-    return diarization
+    import soundfile as sf
+    import torch
+
+    waveform, sample_rate = sf.read(str(wav_path), dtype="float32", always_2d=True)
+    waveform_tensor = torch.from_numpy(waveform.T)
+    diarization = pipeline(
+        {"waveform": waveform_tensor, "sample_rate": sample_rate},
+        num_speakers=num_speakers,
+    )
+
+    annotation = getattr(diarization, "exclusive_speaker_diarization", None)
+    if annotation is None:
+        annotation = getattr(diarization, "speaker_diarization", diarization)
+
+    return [
+        {
+            "start": float(segment.start),
+            "end": float(segment.end),
+            "speaker": str(label),
+        }
+        for segment, _, label in annotation.itertracks(yield_label=True)
+    ]
 
 
 def _assign_speakers(result: dict, diarization) -> list:
@@ -253,25 +295,44 @@ def _assign_speakers(result: dict, diarization) -> list:
 
     Args:
         result: WhisperX transcription result dict with segments
-        diarization: pyannote Diarization object
+        diarization: pyannote Annotation object OR list-of-dicts from a loaded checkpoint
+                     (checkpoint format: [{"start": float, "end": float, "speaker": str}, ...])
 
     Returns:
         List of segments with speaker assignments added
     """
     import re
 
+    import pandas as pd
     import whisperx
 
     logger.info("Assigning speakers to words...")
-    segments = whisperx.diarize.assign_word_speakers(result["segments"], diarization)
+
+    # Build diarize_df from whatever diarization format we have.
+    # Checkpoint reload gives a list-of-dicts; live pyannote run gives an Annotation object.
+    if isinstance(diarization, list):
+        diarize_df = pd.DataFrame(diarization)
+    else:
+        # pyannote Annotation → DataFrame with start/end/speaker columns
+        rows = [
+            {"start": segment.start, "end": segment.end, "speaker": label}
+            for segment, _, label in diarization.itertracks(yield_label=True)
+        ]
+        diarize_df = pd.DataFrame(rows)
+
+    # whisperx.assign_word_speakers signature: (diarize_df, transcript_result) → updated_result dict
+    # Note: NOT whisperx.diarize.assign_word_speakers (lazy imports — diarize is not a module attr).
+    # Arg order matters: diarize_df first, transcript dict second.
+    updated_result = whisperx.assign_word_speakers(diarize_df, result)
+    segments = updated_result.get("segments", [])
 
     # Normalize SPEAKER_0 → SPEAKER_00, SPEAKER_1 → SPEAKER_01, etc.
     for segment in segments:
+        if "speaker" in segment:
+            segment["speaker"] = re.sub(r"SPEAKER_(\d)$", r"SPEAKER_0\1", segment["speaker"])
         for word in segment.get("words", []):
             if "speaker" in word:
-                speaker = word["speaker"]
-                # Convert SPEAKER_N to SPEAKER_0N (zero-padded)
-                word["speaker"] = re.sub(r"SPEAKER_(\d)$", r"SPEAKER_0\1", speaker)
+                word["speaker"] = re.sub(r"SPEAKER_(\d)$", r"SPEAKER_0\1", word["speaker"])
 
     return segments
 
@@ -363,7 +424,7 @@ def run(
 
         # Step 3: Load vocabulary and build Whisper prompt
         logger.info("Step 3: Building Whisper initial prompt...")
-        vocab_config = vocabulary.load_vocabulary(vocab_overlay)
+        vocab_config, vocab_meta = vocabulary.load_vocabulary(vocab_overlay)
         whisper_prompt = vocabulary.build_whisper_prompt(vocab_config)
 
         # Step 4: Run WhisperX transcription + alignment
@@ -382,7 +443,13 @@ def run(
             diarization = _load_checkpoint(cache_dir, "diarization")
         else:
             diarization = _run_diarization(audio_path, hf_token, num_speakers=num_speakers)
-            _save_checkpoint(cache_dir, "diarization", str(diarization))
+            # Serialize as list-of-dicts — str(Annotation) gives Python repr with memory
+            # addresses which is not JSON-recoverable on checkpoint reload.
+            diarization_rows = [
+                {"start": seg.start, "end": seg.end, "speaker": label}
+                for seg, _, label in diarization.itertracks(yield_label=True)
+            ]
+            _save_checkpoint(cache_dir, "diarization", diarization_rows)
 
         # Step 6: Assign speakers to words
         logger.info("Step 6: Assigning speakers to word-level segments...")
@@ -395,7 +462,13 @@ def run(
 
         # Step 7: Apply vocabulary post-correction
         logger.info("Step 7: Applying vocabulary corrections...")
-        segments = vocabulary.apply_vocabulary(segments, vocab_config)
+        corrections = []
+        for segment in segments:
+            corrected_text, segment_corrections = vocabulary.apply_vocabulary(
+                segment.get("text", ""), vocab_config
+            )
+            segment["text"] = corrected_text
+            corrections.extend(segment_corrections)
 
         # Step 8: Merge short speaker blocks
         logger.info("Step 8: Merging short speaker blocks...")
@@ -445,8 +518,6 @@ def run(
 
         # Step 14: Build frontmatter
         logger.info("Step 14: Building frontmatter...")
-        host_info = host_mode.infer_host_cohost_guests(segments)
-
         frontmatter = {
             "title": metadata.get("title", "Untitled"),
             "source": source,
@@ -456,20 +527,22 @@ def run(
             "transcript_method": "whisperx-local",
             "pathway": "P2",
             "quality": "full",
-            "host": host_info.get("host"),
-            "co_host": host_info.get("co_host"),
-            "guests": host_info.get("guests"),
-            "vocab_master_version": vocab_config.get("version", "unknown"),
+            "vocab_master_version": vocab_meta.get("master_version") or "none",
+            "vocab_overlay": vocab_meta.get("overlay_path"),
             "transcribed_at": datetime.now(timezone.utc).isoformat(),
         }
+        if known_speakers:
+            frontmatter["speakers"] = known_speakers
 
         # Step 15: Build and write markdown
         logger.info("Step 15: Building markdown output...")
         markdown_content = markdown_builder.build_path2_markdown(
-            frontmatter=frontmatter,
+            title=metadata.get("title", "Untitled"),
+            description=metadata.get("description", ""),
             segments=segments,
             summary=summary,
-            vocab_candidates=vocab_candidates,
+            frontmatter_dict=frontmatter,
+            corrections=corrections,
         )
 
         # Resolve output filename and write

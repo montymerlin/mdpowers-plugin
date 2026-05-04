@@ -186,17 +186,70 @@ The `-L` flag follows all redirects. The headers prevent CDN bot-detection. The 
 4. Re-run dependency check before attempting transcription.
 5. If still failing: Fall back to pure faster-whisper (no alignment) with degraded quality warning.
 
+### `whisperx.diarize` AttributeError / Wrong `assign_word_speakers` Signature
+
+**Symptom:** `AttributeError: module 'whisperx' has no attribute 'diarize'` or `TypeError` on `assign_word_speakers`.
+
+**Root cause:** whisperx uses lazy imports — `whisperx.diarize` is **not** a module attribute. The correct call is `whisperx.assign_word_speakers(diarize_df, transcript_result)`. Two common mistakes:
+1. `whisperx.diarize.assign_word_speakers(...)` — wrong; `diarize` doesn't exist as a submodule on the import
+2. Reversed arg order: `(segments, diarization)` — wrong; pyannote's `diarize_df` comes first, the full transcript result dict second
+
+**Fix:**
+```python
+import pandas as pd
+import whisperx
+
+# Build a DataFrame from the pyannote output (or list-of-dicts from a loaded checkpoint)
+if isinstance(diarization, list):
+    diarize_df = pd.DataFrame(diarization)
+else:
+    rows = [{"start": s.start, "end": s.end, "speaker": label}
+            for s, _, label in diarization.itertracks(yield_label=True)]
+    diarize_df = pd.DataFrame(rows)
+
+# Correct call: diarize_df first, full result dict second
+updated_result = whisperx.assign_word_speakers(diarize_df, transcript_result)
+segments = updated_result.get("segments", [])
+```
+
+**Discovery context:** Encountered 2026-05-04 on macOS with pyannote 4.x + whisperx installed from main. The `whisperx.diarize` path appears in older examples/tutorials; those are stale.
+
+---
+
+### Diarization Checkpoint Serialization Failure
+
+**Symptom:** On checkpoint resume, `_assign_speakers` fails with `TypeError` or `AttributeError` — the loaded diarization object doesn't have the expected methods (`.itertracks`, `.get`, etc.).
+
+**Root cause:** If `str(diarization)` is passed to `_save_checkpoint`, pyannote's `Annotation.__str__` returns a Python object representation (`<Annotation('timeline', 'label')>`), not JSON. On reload this becomes a string, not a diarization object — `assign_word_speakers` then fails.
+
+**Fix:** Serialize as a list-of-dicts before checkpointing:
+```python
+diarization_rows = [
+    {"start": seg.start, "end": seg.end, "speaker": label}
+    for seg, _, label in diarization.itertracks(yield_label=True)
+]
+_save_checkpoint(cache_dir, "diarization", diarization_rows)
+```
+On reload, pass the list directly to `_assign_speakers` — the function handles both live Annotation objects and list-of-dicts from checkpoints.
+
+**If you have a corrupted checkpoint:** Delete `.mdpowers/cache/{content_id}/diarization.json` (or `.txt`) and re-run — diarization will re-execute from the audio.
+
+**Discovery context:** Encountered 2026-05-04. The bug was introduced when `_save_checkpoint` was called with `str(annotation)` — a Python repr containing memory addresses, not data.
+
+---
+
 ### HF_TOKEN Missing or Invalid
 
-**Symptom:** `PermissionError: You need to pass `use_auth_token` for pyannote.audio` or 401 Unauthorized from Hugging Face.
+**Symptom:** `ValueError: Pipeline is not defined` or `OSError: 401 Unauthorized` from Hugging Face when loading pyannote model. In pyannote ≥4.0 the old `use_auth_token=` kwarg is removed; passing it raises `TypeError: unexpected keyword argument`.
 
 **Handling:**
 1. Check if HF_TOKEN set: `echo $HF_TOKEN` (should output hf_...)
-2. If unset: Prompt user to set: `export HF_TOKEN=<your_token>` or set in .env
+2. If unset: `export HF_TOKEN=<your_token>` or set in .env
 3. If invalid: Regenerate token at https://huggingface.co/settings/tokens
 4. Ensure license accepted: https://huggingface.co/pyannote/speaker-diarization-3.1
 5. Test with: `huggingface-cli whoami`
-6. If user refuses to set token: Skip diarization, use SPEAKER_00 labels only, quality: degraded.
+6. Use `token=hf_token` kwarg (not `use_auth_token=`) for pyannote ≥4.0.
+7. If user refuses to set token: Skip diarization, use SPEAKER_00 labels only, quality: degraded.
 
 ### MPS / CUDA Device Detection Fails
 
@@ -213,6 +266,35 @@ The `-L` flag follows all redirects. The headers prevent CDN bot-detection. The 
 3. If CUDA detected: Use GPU for both whisperx and pyannote; verify compute capability ≥ 3.0
 4. If AMD ROCm: Use `ROCM_HOME` env var; test with `torch.cuda.is_available()` after ROCm setup
 5. If CPU only: Warn user of slow runtime (4–10x slower than GPU)
+
+### pyannote 4.x torchcodec / FFmpeg 8.x Audio Decode Failure
+
+**Symptom:** `RuntimeError: Error opening ... with FFmpeg` or `torchcodec` import errors when pyannote tries to load audio. Occurs with pyannote ≥4.0 on systems where the installed FFmpeg is version 8.x.
+
+**Root cause:** pyannote 4.x switched its audio backend to `torchcodec`, which does not support FFmpeg 8.x (API changes in the FFmpeg libavcodec layer). Any attempt to let pyannote decode MP3/M4A/opus directly will fail on these systems.
+
+**Fix:** Pre-convert audio to 16kHz mono WAV using ffmpeg, then pass the waveform as a dict to the pipeline to bypass the `AudioDecoder` entirely:
+
+```python
+import subprocess, tempfile, torchaudio
+
+with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+    wav_path = tmp.name
+
+subprocess.run(
+    ["ffmpeg", "-y", "-i", str(audio_path), "-ar", "16000", "-ac", "1", wav_path],
+    check=True, capture_output=True,
+)
+waveform, sample_rate = torchaudio.load(wav_path, backend="soundfile")
+audio_input = {"waveform": waveform, "sample_rate": sample_rate}
+diarization = pipeline(audio_input, **kwargs)
+```
+
+Passing `{"waveform": ..., "sample_rate": ...}` instead of a file path causes pyannote to skip the file-decode step entirely, bypassing torchcodec.
+
+**Discovery context:** Encountered 2026-05-04 on macOS with pyannote 4.x + FFmpeg 8.x (Homebrew). WAV pre-conversion is the canonical workaround; `soundfile` backend for torchaudio avoids a separate torchcodec dependency.
+
+---
 
 ### Out of Memory (OOM) During Transcription
 
