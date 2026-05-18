@@ -443,13 +443,7 @@ def run(
             diarization = _load_checkpoint(cache_dir, "diarization")
         else:
             diarization = _run_diarization(audio_path, hf_token, num_speakers=num_speakers)
-            # Serialize as list-of-dicts — str(Annotation) gives Python repr with memory
-            # addresses which is not JSON-recoverable on checkpoint reload.
-            diarization_rows = [
-                {"start": seg.start, "end": seg.end, "speaker": label}
-                for seg, _, label in diarization.itertracks(yield_label=True)
-            ]
-            _save_checkpoint(cache_dir, "diarization", diarization_rows)
+            _save_checkpoint(cache_dir, "diarization", diarization)
 
         # Step 6: Assign speakers to words
         logger.info("Step 6: Assigning speakers to word-level segments...")
