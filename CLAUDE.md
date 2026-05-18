@@ -1,8 +1,8 @@
 # CLAUDE.md — Compatibility Wrapper
 
-Canonical repo instructions live in [AGENTS.md](AGENTS.md). Read that first and treat it as the source of truth.
+Before doing anything else in this repo, Read `AGENTS.md` in full. It is the canonical instruction set for this repo; this file is a thin Claude compatibility wrapper and assumes you have read `AGENTS.md` first.
 
-This file exists only as a Claude-host compatibility layer.
+In Claude Code (CLI), an `@AGENTS.md` directive will expand recursively. In Cowork (desktop), that expansion is not reliable, so the explicit imperative above is required — do not skip it.
 
 ## Claude-specific Notes
 
