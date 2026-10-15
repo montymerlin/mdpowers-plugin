@@ -12,6 +12,8 @@ When an item is evaluated and chosen (or declined), the outcome moves to the Dec
 
 Items likely to be addressed in the next development cycle.
 
+- **`transcribe` refresh — re-evaluate the route before reuse** (`transcribe` skill) — Monty, 2026-10-14: the skill "took ages and was not that good". Before the HQ speaking library's backlog is transcribed, compare current routes on one 33-minute episode (Agartha.One #05, `speaking/2026-05-03_agartha-designing-new-regenerative-systems/`) for speed, accuracy on names and ReFi terms, and speaker attribution; pick one; rewrite the skill as objectives with dated suggestions. Note: HQ's `tools/diarize.py` still defaults `--out` to the retired `self/soul-data/podcasts&presentations`. `status: idea`
+
 - **Validate `convert` against real documents** — Run the new skill on 3-5 documents of different archetypes (Kwaxala-style deck, Frontiers paper, IPBES report, one-page brief, scanned doc) and tune recipes based on what works and what breaks. Log observations to a new `docs/known-issues.md`. `status: active`
 
 - **P4 Podcast RSS runner** (`transcribe` skill) — The P4 pathway spec is now documented in `references/pathways/P4-podcast-rss.md`. The pathway is currently executed manually (Podcast Index API via WebFetch, curl download, delegate to P2). Next step: a `scripts/podcast_rss.py` runner that automates the discover → check-transcript → download → delegate flow. Needs Podcast Index API key wired into env, Buzzsprout signed-CDN pattern codified, and `podcast:transcript` tag parser. `status: idea`
