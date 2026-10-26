@@ -4,6 +4,12 @@ A narrative record of how this plugin evolves. Updated after significant work se
 
 ---
 
+## 2026-10-26 — The licence text ships with the code
+
+The plugin always declared MIT in its manifest and README but shipped no licence text, and MIT's one condition is that its notice goes with every copy. The repo now has a `LICENSE` file (Copyright (c) 2026 Monty Bryant), and the README's licence section points to it. No behaviour changes, so no version bump.
+
+---
+
 ## 2026-04-27 — P2 bug fixes: broken method names, venv probe, openai dep, --speakers consistency
 
 Four bugs confirmed from a live P2 transcription session and fixed:

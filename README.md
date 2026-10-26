@@ -125,7 +125,7 @@ Contributions welcome. Before making structural changes:
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE).
 
 ---
 

@@ -54,6 +54,7 @@ mdpowers-plugin/
 ├── DECISIONS.md
 ├── ROADMAP.md
 ├── CHANGELOG.md
+├── LICENSE            # MIT
 ├── .gitignore
 ├── .claude-plugin/
 ├── scripts/
