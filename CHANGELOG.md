@@ -4,6 +4,19 @@ A narrative record of how this plugin evolves. Updated after significant work se
 
 ---
 
+## 2026-11-06 — v0.5.0: `transcribe` retires its pipeline and becomes a lean, dated guide
+
+`transcribe` was slow and weak, and a November 2026 bake-off showed why. Its WhisperX engine ran CPU-only on a Mac and silently dropped about a fifth of a meeting's speech. Current open models did the job about twenty times faster with nothing dropped.
+
+Rather than patch another engine in, the skill is now a single `SKILL.md`:
+- what a good transcript needs: coverage, a second-opinion model, named speakers, terms and an output shape;
+- dated suggestions: Parakeet v3 + Qwen3-ASR, pyannote community-1, naming speakers from on-screen tile labels, and what to avoid;
+- a **Keeping current** section that tells agents when and where to look for newer models.
+
+The bundled scripts, pathway references, setup wizard and vocabulary cascade are gone: 31 files and about 9,000 lines, roughly 4,900 of them Python. If the workspace has its own transcription tool, the skill defers to it. README, SETUP and the roadmap are updated, and the roadmap's five transcribe items are closed. See Decision 013.
+
+---
+
 ## 2026-10-26 — The licence text ships with the code
 
 The plugin always declared MIT in its manifest and README but shipped no licence text, and MIT's one condition is that its notice goes with every copy. The repo now has a `LICENSE` file (Copyright (c) 2026 Monty Bryant), and the README's licence section points to it. No behaviour changes, so no version bump.

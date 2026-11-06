@@ -180,49 +180,42 @@ The plugin requires:
 
 Everything else is probed at runtime. No hardcoded paths, no assumed tools, no minimum RAM. See `skills/convert/references/environments.md` for full detection.
 
-## Transcribe Skill Pathways
+## Transcribe skill
 
-| Pathway | When available | Best for |
-|---------|-----------------|----------|
-| **P1 — YouTube fast** | All hosts + network | Extracting native YouTube captions + Whisper API fallback. Fastest. |
-| **P2 — WhisperX local** | Hosts with ≥6GB RAM + GPU/CPU | High-quality local transcription with speaker diarization. |
-| **P3 — Cloud API (stub)** | Hosts with network + API credentials | Custom SaaS transcription services (user-implemented). |
-
-Skill probes at runtime and selects best pathway automatically (P1 → P2 → P3). Override with explicit reasoning.
+Since v0.5.0 `transcribe` bundles no scripts. It states what a good transcript needs and names dated model suggestions (late 2026: Parakeet TDT v3 + Qwen3-ASR 1.7B, pyannote community-1), with a prompt to re-check the field. The host provides the tools; on a Mac with Apple Silicon that is typically `parakeet-mlx`, Handy or `mlx-audio`, `pyannote.audio`, and `ffmpeg`. Constrained sandboxes (Cowork) can't run local speech models, so use a terminal host.
 
 ## Environment Detection Profile
 
-When `convert` and `transcribe` run their Probe phases:
+When `convert` runs its Probe phase:
 
 ```
 environment: claude-code-macos | claude-code-linux | cowork-sandbox | cursor | desktop-app | ci-runner | unknown
 ram_gb: <float>
 disk_free_gb: <float>
 network: full | limited | none
-tools: { pymupdf, pandoc, docling, marker, calibre, tesseract, rapidocr, pdftotext, whisperx, pyannote }
+tools: { pymupdf, pandoc, docling, marker, calibre, tesseract, rapidocr, pdftotext }
 builtin_skills: { pdf, docx, pptx, xlsx }
-transcribe_pathways: { p1_available, p2_available, p3_available }
 ```
 
 Detection is soft — missing fields default to conservative values. RAM defaults to 4GB if unprobable. Tools default to ✗ if `which` fails.
 
 ## Known Quirks
 
-**Low-RAM sandboxes (Cowork, small CI runners) — `docling` OOMs and `transcribe` P2 unavailable**
+**Low-RAM sandboxes (Cowork, small CI runners) — `docling` OOMs**
 
-Docling and WhisperX each need ~6GB. Below that, they get SIGKILL'd. The `convert` skill probes RAM and flags `docling: ✗ (oom-risk)` when `ram_gb < 6`. Transcribe marks `p2_available: ✗ (oom-risk)`, falling back to P1 (YouTube) or P3 (if configured). Output frontmatter records `quality: degraded` so files can be re-processed later in beefier environments.
+Docling needs ~6GB. Below that, it gets SIGKILL'd. The `convert` skill probes RAM and flags `docling: ✗ (oom-risk)` when `ram_gb < 6`. Output frontmatter records `quality: degraded` so files can be re-processed later in beefier environments. Local speech models need a full terminal host for the same reason.
 
 **Cursor, Codex, pure-MCP hosts — no built-in Anthropic skills**
 
 `convert` prefers delegating to built-in `pdf`/`docx`/`pptx`/`xlsx` skills when present. When unavailable, falls through gracefully. No configuration needed.
 
-**Sandboxes without network — no lazy installs and no P1 transcribe**
+**Sandboxes without network — no lazy installs**
 
-`clip` lazy-installs `defuddle` on first use; `transcribe` P1 requires network. If environment has no network, both fail and report the error. Pre-install `defuddle` at `$MDPOWERS_NODE_PREFIX` or pre-download WhisperX models to `$XDG_CACHE_HOME/mdpowers/` to work around.
+`clip` lazy-installs `defuddle` on first use. If the environment has no network, it fails and reports the error. Pre-install `defuddle` at `$MDPOWERS_NODE_PREFIX` to work around.
 
 **Read-only home directory**
 
-If `$HOME` isn't writable, set `MDPOWERS_NODE_PREFIX` (for clip) and `XDG_CONFIG_HOME`/`XDG_CACHE_HOME` (for transcribe) to writable paths.
+If `$HOME` isn't writable, set `MDPOWERS_NODE_PREFIX` (for clip) to a writable path.
 
 **.plugin vs .zip extension issue**
 

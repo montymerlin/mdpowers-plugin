@@ -6,6 +6,48 @@ Architectural decisions for the mdpowers plugin, logged in a lightweight ADR (Ar
 
 ---
 
+## Decision 013: Retire the bundled transcription pipeline; `transcribe` becomes objectives plus dated suggestions
+
+**Status:** Accepted
+**Date:** 2026-11-06
+
+**Context:**
+- **The skill stopped being good.** Monty reported on 2026-10-14 that `transcribe` "took ages and was not that good". The skill was ~4,900 lines across 31 files:
+  - P1 YouTube captions with a Whisper API fallback;
+  - P2 WhisperX + pyannote;
+  - a P3 cloud stub;
+  - P4 podcast RSS resolution;
+  - a setup wizard;
+  - a cascading vocabulary system.
+- **The field moved past it.** A montymerlinHQ survey and bake-off on 2026-11-05/06 tested a 26-minute, 5-speaker Google Meet recording on an M1 Max:
+  - The P2 engine (WhisperX large-v2) ran CPU-only, took 39.5 minutes and silently dropped about a fifth of the speech, in 13 gaps.
+  - Parakeet TDT 0.6B v3 (parakeet-mlx) with pyannote community-1 did the same job in about 2 minutes, with nothing dropped and all speakers separated.
+  - Qwen3-ASR 1.7B made different, complementary errors, which makes it a good second opinion.
+  - Naming speakers from the meeting's own on-screen tile labels beat every product.
+- **This was the second time.** The `convert` lesson repeated itself: a skill that hard-codes a toolchain ages faster than its instructions.
+
+**Decision:**
+- **Delete the bundled pipeline.** `scripts/`, `references/`, `commands/` and `assets/` all go.
+- **Rewrite `skills/transcribe/SKILL.md`** as a lean, objective-led skill:
+  - stages with "done when" criteria: source, words, second opinion, turns, names, terms, output;
+  - dated suggestions: Parakeet v3 primary, Qwen3-ASR second opinion, pyannote community-1, on-screen naming, an "avoid" list;
+  - a **Keeping current** section saying when to re-check the field (suggestions over ~6 months old, before a large batch, after a disappointing run), where to look (Open ASR Leaderboard AMI column, Artificial Analysis, upstream releases, Handy's model list), and that a new model must win a side-by-side test before it replaces one.
+- **Defer to the workspace.** If the workspace has its own transcription tool, the skill tells the agent to prefer it. montymerlinHQ's is `tools/transcribe/`.
+- **Supersede two decisions:** 006 (pathway architecture) and 009 (P4 podcast RSS runner).
+
+**Consequences:**
+- **Less to maintain.** About 9,000 lines go (4,900 of them code), the skill stays useful as a checklist on any host, and its suggestions carry a date and a re-check prompt instead of silently ageing.
+- **No turnkey runner.** The plugin no longer ships one, so the host must provide the models (parakeet-mlx, Handy or mlx-audio, pyannote). In a constrained sandbox (Cowork) the skill can only advise.
+- **Gone without replacement:** the YouTube-caption runner, the podcast-RSS resolver and the vocabulary cascade. Their essentials survive as one-line suggestions: prefer existing captions or the `podcast:transcript` tag, and treat mistranscription lists as review suggestions.
+- **Behaviour changes, so a minor version:** 0.5.0.
+
+**Alternatives considered:**
+- **Patch P2 to use Parakeet.** It would keep the 4,900-line framework, and its next engine swap. Rejected.
+- **Bundle montymerlinHQ's new `tools/transcribe` into the plugin.** It would ship working code, but would re-create the maintenance burden and couple a portable plugin to one workspace's conventions. Rejected for now; it can be revisited if the tool proves stable across more recordings.
+- **Delete the skill entirely.** That loses the checklist and the "keep current" prompt, which are the parts that age well. Rejected.
+
+---
+
 ## Decision 012: Math-density engine routing for PDF conversions
 
 **Status:** Accepted
@@ -85,7 +127,7 @@ Architectural decisions for the mdpowers plugin, logged in a lightweight ADR (Ar
 
 ## Decision 009: P4 Podcast RSS as a pre-flight resolution pathway for podcast platform URLs
 
-**Status:** Accepted
+**Status:** Superseded by Decision 013 (2026-11-06)
 **Date:** 2026-04-15
 
 **Context:** During the EthicHub transcription session, four podcast appearances by EthicHub founders were targeted for transcription. All four had platform-specific distribution challenges: one was Spotify-only with a dead hosting page, one was on a Buzzsprout CDN that reliably returned HTML instead of audio, and two others were on podcast platforms that required UI authentication to access episode pages. Standard approaches (yt-dlp, WebFetch on episode page, curl on page-scraped URL) all failed.
@@ -196,7 +238,7 @@ The routing logic lives in `skills/convert/references/environments.md` ("Host ro
 
 ## Decision 006: Transcribe skill architecture — modular lib + adaptive pathways
 
-**Status:** Accepted
+**Status:** Superseded by Decision 013 (2026-11-06)
 **Date:** 2026-04-10
 
 **Context:** Audio/video transcription has different operational requirements across environments. Some users have local GPU capacity and prefer WhisperX + diarization for highest quality (P2); others need fast cloud-native transcription from YouTube URLs (P1); a few want to plug in custom APIs (P3 stub). A monolithic approach would either force all pathways into a single implementation (code bloat, feature conflict) or require users to choose between separate skills (/yt-transcribe, /local-transcribe) that duplicate reference material and decision-making. The transcribe skill was originally authored as a monolith in montymerlinHQ/tools/ and needed decomposition to fit the mdpowers plugin's modular conventions.

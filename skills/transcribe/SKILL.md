@@ -1,224 +1,70 @@
 ---
 name: transcribe
-description: Transcribe audio and video to structured, speaker-labelled markdown with adaptive vocabulary correction. Use when the user asks to "transcribe", "get a transcript", "transcribe this video", "transcribe this podcast", "transcribe this audio", provides a YouTube URL they want transcribed, mentions "diarization", "speaker labels", or asks to process audio/video into text. Handles YouTube videos (native subtitles or Whisper API fallback), local audio files (WhisperX + pyannote diarization), and stubs for cloud API services. Vocabulary priming and post-correction use a cascading global + project-local overlay system.
+description: Transcribe audio or video (a meeting or screen recording, a talk, a podcast, a YouTube video) into speaker-labelled, timestamped markdown. Use when the user asks to "transcribe", "get a transcript", "transcribe this video/podcast/audio", mentions "diarization" or "speaker labels", or wants to know who said what in a recording.
 ---
 
 # transcribe
 
-> **Guides not rails.** Everything below is a default, not a mandate. Pathway descriptions, playbooks, and phase instructions exist so you don't have to re-derive good choices every time — not to override your judgment when the situation calls for something different. If a source would be better served by a different approach, take it, name what you changed, and proceed. The worst failure mode isn't deviating from the playbook — it's following it blindly and producing something worse than judgment would have. Hard rails are listed in `references/anti-patterns.md`. Everything else is soft.
+**This skill states what a good transcript needs, not how to make one.** Speech recognition moves monthly. The tools named below are dated suggestions; check for better before using them (see *Keeping current*). If the workspace already has its own transcription tool or skill, prefer that and use this as the checklist.
 
-## What this skill does
+**Privacy.** Recordings of meetings are usually other people's words. Prefer local models. Send audio, video or a transcript to a cloud service only with the user's explicit OK for that file or batch.
 
-Transcribes audio and video sources into structured markdown with YAML frontmatter, timestamped text, optional speaker diarization, vocabulary-aware correction, and LLM-generated summaries. The output isn't raw text — it's an AI-readable, human-reviewable document that other agents and people can navigate, search, cite, and reason over.
+## What done looks like
 
-## When to use
+| Stage | Objective · done when |
+|---|---|
+| **Source** | The best existing text is found before anything is transcribed. Use human-made captions, a podcast's own transcript (the RSS `podcast:transcript` tag), or the meeting platform's transcript if it is good enough. Otherwise extract the audio (mono 16 kHz is enough) |
+| **Words** | Everything said is there, and nothing is silently dropped. A long silence in the text where the recording has speech is a failure to investigate. Check the word count against the length (about 120–160 words a minute in conversation) |
+| **Second opinion** | A second model from a different family has transcribed the same audio. Every place the two disagree on a name, term or proper noun is decided from context or the audio. Neither model wins automatically; each catches what the other misses |
+| **Turns** | A new block starts at each change of speaker, and voice clusters match real people. Diarization can merge or split people; flag it when in doubt |
+| **Names** | Every speaker carries a real name, or `Speaker A/B…` with a note saying why. A name needs evidence: the on-screen label, a spoken introduction, the attendee list or episode notes, or the user. Never a guess |
+| **Terms** | People, organisations and jargon are spelled right. Fix only distinctive casing automatically (ReFi, DAO). Treat a known-mistranscription list as suggestions to check in context, because many entries are ordinary phrases |
+| **Output** | Markdown with YAML frontmatter: `source`, `method` (which models), `transcribed` (date), `reviewed: false`, `speakers`. Then `**Name** \`[mm:ss]\`` blocks, plus a short list of anything left for a human to check |
 
-- User provides a YouTube URL and wants a transcript
-- User has a local audio/video file (mp3, m4a, wav, ogg, flac, mp4, webm) to transcribe
-- User asks for speaker identification, diarization, or "who said what"
-- User wants vocabulary-corrected transcripts (domain-specific terms, proper nouns)
-- User wants to transcribe a batch (playlist, folder of files, season of episodes)
-- User provides a podcast URL (Spotify, Apple Podcasts, Buzzsprout, or any podcast platform) — use P4 to resolve audio first
+## Current suggestions (as of 2026-11; check for better first)
 
-## The four phases
+**Local, Apple Silicon.** These two were the strongest local pair in a November 2026 bake-off on a 26-minute, 5-speaker meeting, and they make different mistakes:
+- **Parakeet TDT 0.6B v3**, via [parakeet-mlx](https://github.com/senstella/parakeet-mlx): the primary. It gives word timestamps (needed to merge with speaker turns), runs about 50× real time, and is consistent on acronyms.
+- **Qwen3-ASR 1.7B**: the second opinion. Run it via the [Handy](https://github.com/cjpais/Handy) app's CLI (`handy --transcribe-file x.wav --json --model <id>`, text only, so transcribe each speaker stretch separately) or via [mlx-audio](https://github.com/Neywa-Labs/mlx-audio). It caught names and terms Parakeet missed, but was less consistent on acronyms.
 
-Every transcription moves through four phases. Like the convert skill's five phases, these are conceptual — they compress or expand depending on complexity.
+**Speaker turns: [pyannote](https://github.com/pyannote/pyannote-audio) `speaker-diarization-community-1`.** It is open but gated on Hugging Face, so it needs a token. It runs on the Apple GPU (MPS) at roughly 15–25× real time, has no speaker cap, and separated 5 of 5 speakers in the test.
+- Give each word the speaker whose turn holds its midpoint.
+- Several newer models diarize in one pass (VibeVoice-ASR, Nemotron 3.5 Transcribe). In late 2026 they were capped at 8–10 speakers or were memory-hungry.
 
-1. **Probe** — detect the source type, check the environment, load vocabulary
-2. **Route** — choose the best pathway based on probe results, user intent, and environment
-3. **Run** — execute the chosen pathway's pipeline
-4. **Review** — present results, flag quality issues, offer vocabulary candidate promotion
+**Naming from a screen recording.** Meet and Zoom mark the active speaker's tile with a coloured border (2023 Meet: light blue; Zoom: green) and print the name under the tile.
+- Sample frames at 1 fps, find the bordered tile and OCR its label. Apple's Vision framework does this with no install.
+- Vote per voice cluster.
+- In the test, this named every speaker correctly. No product or API did this.
 
-## Phase 1 — Probe
+**Other machines.** The same models run through NVIDIA NeMo or transformers on CUDA.
 
-Run `scripts/probe.py` (or invoke its logic directly). Probe does three things in parallel:
+**Avoid (late 2026):**
+- **WhisperX / faster-whisper on a Mac:** CPU-only, slower than real time, and in the bake-off it silently dropped about a fifth of the speech.
+- **Granola:** cannot import recorded files.
+- **OpenAI `gpt-4o-transcribe-diarize`:** shuts down on 26 Feb 2027 and caps files at 25 MB.
+- **Blind find-and-replace from a mistranscription list.**
 
-**(a) Source detection.** Parse the input — is it a YouTube URL, a local file path, or a folder of files? For YouTube: fetch video metadata (title, channel, duration, available subtitle tracks). For local files: check format, size, duration via ffprobe.
+**Cloud, if the user approves.** AssemblyAI (names speakers from a supplied list) and Speechmatics (voiceprints, no training on data by default) were the most complete for long meetings. Check each provider's data-retention and training terms first.
 
-**(b) Environment detection.** Check what's installed: yt-dlp, ffmpeg/ffprobe, whisperx, pyannote, torch (and device: CUDA, MPS, CPU), OpenAI API key. Detect host mode (local vs sandbox) using `lib/host_mode.py`.
+## Keeping current
 
-**Host routing check (always run for transcription):** Transcription is always a complex job — it requires ffmpeg, long-running processes, and often pip-installed models. If running in Co-Work or a constrained sandbox (RAM < 5GB, no pip/brew, path contains `/sessions/`), surface this recommendation before Route:
+This is the part of the skill most likely to be wrong. Re-check the suggestions when:
+- they are more than about six months old;
+- before a large batch;
+- when a run disappoints.
 
-```
-⚠️  Transcription runs best in a full local terminal host (Claude Code or Codex).
+Where to look:
+- the [Open ASR Leaderboard](https://huggingface.co/spaces/hf-audio/open_asr_leaderboard). The **AMI** column is the meeting-audio one; the long-form tab matters for hour-long files;
+- the [Artificial Analysis speech-to-text](https://artificialanalysis.ai/speech-to-text) leaderboard, for cloud models;
+- recent releases of parakeet-mlx, mlx-audio and pyannote, and the model list in Handy.
 
-Reason: transcription requires ffmpeg, long-running Whisper processes, and sometimes
-local model downloads — all of which are constrained or unavailable in Co-Work.
+A new model earns a place only after a side-by-side test on a real recording. Measure:
+- coverage, i.e. no dropped stretches;
+- names and terms;
+- speed.
 
-To run in a full local terminal host:
-  1. Open a terminal and cd to your project
-  2. Run your preferred agent host (`claude` or Codex)
-  3. Ask: "Transcribe [filename or URL] using mdpowers:transcribe"
+When the pick changes, update this section and its date, and record why in the plugin's `CHANGELOG.md`.
 
-Proceed anyway in this environment? (y/n)
-```
+## Changelog
 
-If the user says yes, proceed — don't block. P1 (YouTube captions) is the most likely to succeed in a constrained environment; P2 (local WhisperX) will almost certainly fail.
-
-**(c) Vocabulary detection.** Walk the discovery cascade (see `references/playbooks/vocabulary-handling.md`): `$MDPOWERS_VOCAB` → XDG master → workspace `.mdpowers/vocabulary.*.json` overlays → merge. Report what was found and loaded.
-
-Output: a short profile carried into Route. Example:
-```
-Source: YouTube video "ReFi Podcast Ep. 42" (47:23, manual subs available)
-Environment: local mode, yt-dlp ✓, whisperx ✓ (CPU), pyannote ✓ (MPS), OPENAI_API_KEY ✓
-Vocabulary: master (142 terms) + overlay <project-name> (23 terms) = 165 active terms
-```
-
-## Phase 2 — Route
-
-Choose a pathway based on the probe results. Three pathways exist:
-
-### Intent routing table
-
-| Signal | Pathway | Why |
-|--------|---------|-----|
-| YouTube URL + subs available | **P1** | Fast, no compute needed |
-| YouTube URL + no subs + no whisperx | **P1** (Whisper API fallback) | API handles it |
-| YouTube URL + user wants diarization | **P2** | Needs local pipeline |
-| Local audio file + whisperx installed | **P2** | Full local pipeline |
-| Local audio file + no whisperx | **P1** (Whisper API) | Graceful degradation |
-| Podcast URL (Spotify, Apple Podcasts, Buzzsprout) | **P4** | Discover RSS → audio → P2/P3 |
-| User explicitly requests an API service | **P3** | Stub — not yet implemented |
-| Sandbox mode + P2 requested | **Script emission** | Can't run locally in sandbox |
-
-**Routing rules:**
-
-- If the user explicitly requests a pathway, honour it. If the environment can't support it, **stop and explain** — never silently degrade on explicit override (anti-pattern #4).
-- If routing to P1 via Whisper API fallback (no native subs, no whisperx), mark `quality: degraded` in frontmatter and explain the degradation to the user.
-- If in sandbox mode and P2 is the best choice, use `scripts/emit_run_script.py` to generate a local run script instead of attempting execution.
-
-### Batch handling
-
-If the user provides multiple URLs, a playlist, or a folder:
-- **Pause and confirm** before starting: show count, estimated time, output location.
-- Process sequentially unless user explicitly says "batch run" or "do the whole playlist."
-- Report progress between items.
-
-## Phase 3 — Run
-
-Execute the chosen pathway. Each pathway has a detailed reference file:
-
-- **P1 — YouTube Fast:** `references/pathways/P1-youtube-fast.md`, runner: `scripts/yt_fast.py`
-- **P2 — WhisperX Local:** `references/pathways/P2-whisperx-local.md`, runner: `scripts/whisperx_local.py`
-- **P3 — API Service:** `references/pathways/P3-api-service.md`, runner: `scripts/api_service.py` (stub)
-- **P4 — Podcast RSS:** `references/pathways/P4-podcast-rss.md`, no dedicated runner yet (delegates to P2/P3 after audio resolution)
-
-### What each pathway produces
-
-**P1 (YouTube Fast):**
-- Fetches native subtitles (manual → auto-generated) or falls back to Whisper API
-- Flat timestamped markdown (no speaker blocks)
-- Vocabulary post-correction applied
-- LLM summary generated
-- Fast: typically 30–120 seconds
-
-**P2 (WhisperX Local):**
-- Downloads audio, runs WhisperX transcription (CPU — ctranslate2 does NOT support MPS)
-- Runs pyannote diarization (can use MPS on Apple Silicon)
-- Speaker assignment via overlap voting
-- Speaker identification via metadata research + LLM guess
-- Vocabulary priming (Whisper initial_prompt) + post-correction
-- LLM quirks review (confidence-gated autocorrection)
-- Vocabulary candidate discovery
-- Bold speaker-labelled markdown blocks
-- Checkpointed: resumable from `.mdpowers/cache/{video_id}/`
-- Slower: 5–30 minutes depending on duration and hardware
-
-**P3 (API Service — stub):**
-- Not yet implemented (v0.2 target)
-- Will support AssemblyAI, Deepgram, Rev.ai
-- Currently raises `NotYetImplemented` with guidance
-
-**P4 (Podcast RSS):**
-- Resolves Spotify, Apple Podcasts, Buzzsprout, and other podcast platform URLs to a direct audio enclosure via RSS/Podcast Index API
-- Checks for existing transcripts (podcast:transcript tag, Taddy, Apple Podcasts API) before downloading audio
-- Downloads the audio file (handling signed CDN URLs like Buzzsprout/CloudFront with browser headers)
-- Delegates to P2 (local) or P3 (API) for transcription once audio is resolved
-- See `references/pathways/P4-podcast-rss.md` for full workflow
-
-### Graceful degradation
-
-When the environment can't support the ideal pathway:
-
-| Situation | Behaviour |
-|-----------|-----------|
-| P2 requested but whisperx missing | Offer P1 fallback, mark `quality: degraded` |
-| P2 OOM on large-v2 model | Retry with medium model, then fall back to Whisper API |
-| No OPENAI_API_KEY | P2 still works (local only). P1 Whisper fallback unavailable — warn user |
-| Sandbox mode + P2 | Emit run script via `scripts/emit_run_script.py` |
-| yt-dlp auth wall | Stop, explain, suggest manual download + P2 |
-
-**Critical:** never silently degrade when the user explicitly chose a pathway. Stop, explain, offer alternatives.
-
-## Phase 4 — Review
-
-After the run completes:
-
-1. **Present the output** — show the file path, a brief quality summary, and the frontmatter metadata.
-
-2. **Flag quality issues** — if quality degraded, timestamps are missing, speaker count seems wrong, or vocabulary corrections were heavy, say so explicitly.
-
-3. **Vocabulary candidates** — if P2 ran and discovered new vocabulary candidates (terms that appear frequently but aren't in the master vocab), present them and offer to promote to the project overlay or master vocabulary. See `references/playbooks/vocabulary-handling.md` for the promotion workflow.
-
-4. **Speaker review** — if speakers were identified via LLM guess (not user-provided), flag them as provisional and offer the user a chance to correct before finalising.
-
-5. **Overwrite handling** — if the output path already existed, the skill should have offered versioning (_v2, _v3) rather than silent overwrite. Confirm the final path.
-
-## Playbooks
-
-These are the detailed reference guides for cross-cutting concerns:
-
-- `references/playbooks/vocabulary-handling.md` — discovery cascade, priming, post-correction, candidate discovery, promotion workflow
-- `references/playbooks/speaker-identification.md` — three-stage flow (metadata research → LLM guess → user confirmation), mapping, anti-patterns
-- `references/playbooks/output-format.md` — YAML frontmatter contract, markdown body shapes, filename conventions, overwrite handling
-
-Read the relevant playbook before executing the corresponding part of a pathway.
-
-## Environment and setup
-
-- `references/environments.md` — dependency matrix, platform notes, env vars, install tiers
-- `references/setup.md` — local-mode setup walkthrough
-- `references/setup-sandbox.md` — sandbox-mode setup via chat UI
-- `references/anti-patterns.md` — 12 hard rails that must never be violated
-
-First-time users should run `/transcribe setup` to initialise vocabulary files, check dependencies, and configure their environment. The setup command is documented in `commands/transcribe-setup.md`.
-
-### Dependency tiers
-
-**Tier 1 (core):** yt-dlp, openai, python-dotenv, tiktoken — required for P1.
-**Tier 2 (heavy):** whisperx, pyannote-audio, torch, torchaudio — required for P2. Install via `scripts/install_path2.sh`.
-**Tier 3 (NLTK):** NLTK words corpus — optional, improves vocabulary candidate filtering. Install via `scripts/install_nltk_data.sh`.
-
-## Host mode awareness
-
-This skill runs in two host modes:
-
-- **Local** (Claude Code terminal, Codex, Cursor): full subprocess access, real filesystem, GPU available. All pathways execute directly.
-- **Sandbox** (Cowork): sandboxed mount, no GPU, session timeouts. P1 works directly. P2 requires script emission — the skill generates a `.sh` file the user runs on their local machine.
-
-Host mode is auto-detected by `lib/host_mode.py` (heuristics: `/sessions/` path, `$CLAUDECODE`, `$CURSOR_AGENT`) and can be explicitly overridden via `$MDPOWERS_HOST_MODE=local|sandbox`.
-
-## Commons-awareness
-
-If you detect an `AGENTS.md` or `CLAUDE.md` in the working tree, read the nearest canonical instruction file and honour any conventions it declares. Watch for filename conventions, output directory preferences, and commit policy. Name what you're applying at the start of your response.
-
-## Relationship to other skills
-
-- **`mdpowers:convert`** — sibling skill for documents (PDF, docx, pptx → markdown). If the user has a document, use convert. If they have audio/video, use transcribe.
-- **`mdpowers:clip`** — sibling skill for web pages → markdown. If the source is a URL that isn't a video, use clip.
-- **Removed:** `mdpowers:pdf-convert` — removed in v0.4, replaced by convert. Knowledge bank migrated to `convert/references/`.
-- **Superpowers skills** (if installed) — `two-stage-review` for prose quality review after transcription, `brainstorming` for unusual transcription challenges. Optional siblings, not hard dependencies.
-
-## References
-
-- `references/pathways/P1-youtube-fast.md` — YouTube fast pathway (10 steps)
-- `references/pathways/P2-whisperx-local.md` — WhisperX local pathway (18 steps, checkpointed)
-- `references/pathways/P3-api-service.md` — API service stub (v0.2 plan)
-- `references/pathways/P4-podcast-rss.md` — Podcast RSS resolution pathway (discover → check → download → delegate)
-- `references/playbooks/vocabulary-handling.md` — vocabulary discovery, priming, correction, promotion
-- `references/playbooks/speaker-identification.md` — three-stage speaker flow
-- `references/playbooks/output-format.md` — frontmatter contract, markdown shapes, filename conventions
-- `references/environments.md` — dependency matrix, platform notes, install tiers
-- `references/setup.md` — local setup walkthrough
-- `references/setup-sandbox.md` — sandbox setup walkthrough
-- `references/anti-patterns.md` — 12 hard rails
+- **0.5.0 (2026-11-06)** Rewritten as a lean, objective-led skill. The bundled WhisperX/pyannote pipeline (P2), the cloud-API stub (P3), the YouTube and podcast runners (P1, P4), the setup wizard and the vocabulary cascade are retired. See `DECISIONS.md` Decision 013.

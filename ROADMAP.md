@@ -12,17 +12,7 @@ When an item is evaluated and chosen (or declined), the outcome moves to the Dec
 
 Items likely to be addressed in the next development cycle.
 
-- **`transcribe` refresh — re-evaluate the route before reuse** (`transcribe` skill) — Monty, 2026-10-14: the skill "took ages and was not that good". Before the HQ speaking library's backlog is transcribed, compare current routes on one 33-minute episode (Agartha.One #05, `speaking/2026-05-03_agartha-designing-new-regenerative-systems/`) for speed, accuracy on names and ReFi terms, and speaker attribution; pick one; rewrite the skill as objectives with dated suggestions. Note: HQ's `tools/diarize.py` still defaults `--out` to the retired `self/soul-data/podcasts&presentations`. `status: idea`
-
 - **Validate `convert` against real documents** — Run the new skill on 3-5 documents of different archetypes (Kwaxala-style deck, Frontiers paper, IPBES report, one-page brief, scanned doc) and tune recipes based on what works and what breaks. Log observations to a new `docs/known-issues.md`. `status: active`
-
-- **P4 Podcast RSS runner** (`transcribe` skill) — The P4 pathway spec is now documented in `references/pathways/P4-podcast-rss.md`. The pathway is currently executed manually (Podcast Index API via WebFetch, curl download, delegate to P2). Next step: a `scripts/podcast_rss.py` runner that automates the discover → check-transcript → download → delegate flow. Needs Podcast Index API key wired into env, Buzzsprout signed-CDN pattern codified, and `podcast:transcript` tag parser. `status: idea`
-
-- **P3 API service implementation** (`transcribe` skill) — Implement the cloud transcription service API stub (currently placeholder). Establish the contract for per-provider authentication (API keys), test with ≥1 real SaaS provider (e.g., AssemblyAI, Rev), update anti-patterns and output format docs. `status: idea`
-
-- **Batch playlist handling** (`transcribe` skill) — Support P1 (YouTube) bulk transcription with a playlist URL, emit a unified index markdown with per-video chapters and timestamps. Low-hanging fruit for power users who want to transcribe workshop series, courses, or multi-part talks in one go. `status: idea`
-
-- **Vocabulary auto-promotion** (`transcribe` skill) — Implement the frequency-based cascade logic that promotes custom vocabulary items to standard when they appear consistently across multiple transcriptions. Currently the infrastructure is in place (custom/standard split), the promotion logic is a stub. `status: idea`
 
 - **Cross-skill convert↔transcribe handoff** — When a user provides a video file that's encoded as MP4/WebM with audio, detect this and suggest transcribing the audio track instead of trying to convert the whole file. Conversely, when transcribing a presentation video, suggest converting the visible deck (if available separately) to structured slides. This is a "would you like to..." suggestion, not automatic. `status: idea`
 
@@ -91,12 +81,13 @@ Items that have been evaluated. The reasoning lives in [DECISIONS.md](DECISIONS.
 - **"Guides not rails" as project-wide principle** — → Decision 003. `status: decided`
 - **Prefer built-in Anthropic skills as first-choice engines** — → Decision 004. `status: decided`
 - **Rename to `mdpowers` and decouple from Cowork branding** — → Decision 005. `status: decided`
-- **Transcribe skill architecture** — → Decision 006. `status: decided`
+- **Transcribe skill architecture** — → Decision 006, superseded by Decision 013. `status: decided`
 - **Host routing and environment detection** — → Decision 007. `status: decided`
 - **OA API cascade for academic papers** — → Decision 008. `status: decided`
-- **P4 Podcast RSS pathway** — → Decision 009. `status: decided`
+- **P4 Podcast RSS pathway** — → Decision 009, superseded by Decision 013. `status: decided`
 - **Version reconciliation and versioning convention** — → Decision 010. `status: decided`
 - **Canonical repo instructions + Codex install/update support** — `AGENTS.md` is canonical, `CLAUDE.md` is a wrapper, and Codex installs via namespaced global skills backed by a vendor clone. → Decision 011. `status: decided`
+- **Retire the bundled transcription pipeline; lean objective-led `transcribe`** — → Decision 013. `status: decided`
 - **Remove `pdf-convert` in v0.4** — Done. Knowledge bank and helper scripts migrated to `skills/convert/references/`. `status: decided`
 
 <!-- Scaffold sources: GitHub roadmap patterns, Mozilla Science roadmapping guide, agile parking lot conventions, YAGNI principle, agentic-scaffold-plugin v0.1.0 -->

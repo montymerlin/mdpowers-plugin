@@ -8,7 +8,7 @@ Markdown superpowers for knowledge gardens. A host-agnostic markdown-ingestion t
 |-------|---------|--------------|
 | `/convert` | "convert", "pdf to markdown", "docx to markdown", "pptx to markdown", "slide deck to markdown", upload a document | Adaptively converts any document (PDF, docx, pptx, epub, html, image) into structured, AI-readable markdown — with diagrams → mermaid, comparisons → tables, per-recipe enrichment, and graceful engine fallback |
 | `/clip` | "clip this", "save this page", "defuddle", paste a URL | Fetches a web page via Defuddle, strips ads/nav/chrome, saves clean markdown with YAML frontmatter |
-| `/transcribe` | "transcribe this", "transcribe video", "transcribe youtube", "transcribe audio", upload audio/video | Transcribes audio and video to structured, speaker-labelled markdown with adaptive vocabulary correction. Supports YouTube (native subs + Whisper API fallback), local files (WhisperX + pyannote diarization), and cloud API services (stub). |
+| `/transcribe` | "transcribe this", "transcribe video", "transcribe youtube", "transcribe audio", upload audio/video | Says what a good speaker-labelled transcript needs (coverage, a second-opinion model, named speakers, terms), with dated suggestions for current local models (late 2026: Parakeet v3 + Qwen3-ASR, pyannote) and a prompt to re-check the field. v0.5 retired the bundled pipeline. |
 | `/pdf-convert` | *(removed)* | **Removed in v0.4.** Use `/convert` instead. Knowledge bank and helper scripts migrated to `convert/references/`. |
 
 ## What makes `convert` different
@@ -83,7 +83,7 @@ mdpowers-plugin/
 └── skills/
     ├── convert/                    # adaptive document-to-markdown (v0.3)
     ├── clip/                       # web-page-to-markdown via Defuddle
-    ├── transcribe/                 # audio/video to markdown + speaker labels + vocabulary
+    ├── transcribe/                 # transcript objectives + dated model suggestions (SKILL.md only)
     └── (pdf-convert removed in v0.4; assets migrated to convert/references/)
 ```
 
