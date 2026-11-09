@@ -52,7 +52,7 @@ If those aren't satisfied, surface the problem to the user before continuing the
 
 | Host | Status | Install | Notes |
 |------|--------|---------|-------|
-| **Cowork** | Supported | Upload `ops/plugins/_dist/mdpowers-0.4.3.plugin` | Tight-RAM sandbox — `docling` skipped, `pymupdf` used instead. Graceful degradation automatic. |
+| **Cowork** | Supported | Add the marketplace `montymerlin/mdpowers-plugin`, or upload a built `.plugin` | Tight-RAM sandbox — `docling` skipped, `pymupdf` used instead. Graceful degradation automatic. |
 | **Claude Code CLI** | Supported | `claude plugins install github.com/montymerlin/mdpowers-plugin` | Primary development environment. Built-in `pdf`/`docx`/`pptx`/`xlsx` skills available for delegation. |
 | **Codex** | Supported (skills-only) | `bash scripts/install_codex_skills.sh --from-github` | Global skills install; points back to vendor clone. No `.claude-plugin/`. |
 | **Cursor (via MCP)** | Supported | Add as MCP server in Cursor settings | Skills appear as tool calls. No built-in Anthropic skills — `convert` falls back to `pymupdf`/`pandoc`. |
@@ -80,7 +80,7 @@ zip -r /tmp/mdpowers-0.4.3.plugin . \
 The output `/tmp/mdpowers-0.4.3.plugin` is your upload artifact.
 
 **Option 3 — built by the workspace `cowork-plugin-packager` skill** (montymerlinHQ collaborators only):
-The packaged file lives at `ops/plugins/_dist/mdpowers-0.4.3.plugin` after running the skill.
+The skill writes the packaged file to a temporary folder and prints its path.
 
 Then upload:
 
